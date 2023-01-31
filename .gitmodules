@@ -1,0 +1,6 @@
+[submodule "cloud-morph"]
+	path = cloud-morph
+	url = https://github.com/giongto35/cloud-morph.git
+[submodule "toxiproxy"]
+	path = toxiproxy
+	url = https://github.com/Shopify/toxiproxy.git
