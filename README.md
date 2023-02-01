@@ -4,9 +4,10 @@
 
 1. `git submodule update --init --recursive`
 2. Install requirements
-    * Docker
-    * Go
-    * tmux
+    ```sh
+    sudo apt install curl tmux golang make
+    sudo cloud-morph/setup.sh
+    ```
 3. Build toxiproxy
     ```sh
     cd toxiproxy
