@@ -1,1 +1,1 @@
-ffplay -fflags nobuffer -protocol_whitelist "file,rtp,udp" -i stream.sdp
+ffplay -infbuf -max_delay 1000000 -protocol_whitelist "file,rtp,udp" -i stream.sdp
