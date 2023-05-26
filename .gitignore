@@ -1,2 +1,7 @@
 .metals
 .vim
+.vim-bookmarks
+.cache
+syncinput/build
+frontend/build
+compile_commands.json
