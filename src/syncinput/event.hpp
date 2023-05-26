@@ -2,7 +2,7 @@
 #define EVENT_HPP
 
 #include <string_view>
-#include "input.hpp"
+#include "input/input.hpp"
 
 class EventProcessor
 {

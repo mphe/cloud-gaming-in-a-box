@@ -1,7 +1,7 @@
 #include <iostream>
 #include <X11/keysym.h>
 #include <unistd.h>
-#include "xorg.hpp"
+#include "input/xorg.hpp"
 #include <X11/extensions/XTest.h>
 
 using namespace std;

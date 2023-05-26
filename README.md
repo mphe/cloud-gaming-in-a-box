@@ -2,6 +2,8 @@
 
 ## Setup
 
+<!-- cspell: disable -->
+
 1. `git submodule update --init --recursive`
 2. Install requirements
     ```sh
@@ -12,7 +14,17 @@
     ```sh
     cd toxiproxy
     make build
+    cd ..
     ```
+4. Build frontend and syncinput
+    ```sh
+    mkdir src/build
+    cd src/build
+    cmake -DCMAKE_BUILD_TYPE=Release ..
+    make -j
+    ```
+
+<!-- cspell: disable -->
 
 ## Usage
 
