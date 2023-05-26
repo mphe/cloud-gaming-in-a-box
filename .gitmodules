@@ -1,12 +1,3 @@
-[submodule "cloud-morph"]
-	path = cloud-morph
-	url = https://github.com/giongto35/cloud-morph.git
 [submodule "toxiproxy"]
 	path = toxiproxy
 	url = https://github.com/Shopify/toxiproxy.git
-[submodule "syncinput/asio"]
-	path = syncinput/asio
-	url = https://github.com/chriskohlhoff/asio.git
-[submodule "syncinput/clsocket"]
-	path = syncinput/clsocket
-	url = https://github.com/DFHack/clsocket.git
