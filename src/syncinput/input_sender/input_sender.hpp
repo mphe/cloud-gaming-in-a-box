@@ -5,9 +5,6 @@
 #ifdef __linux__
 #include "xorg.hpp"
 // Use XTest implementation by default because it will work 99% of the time.
-namespace input {
-    typedef InputSenderXTest InputSender;
-}
 #elif _WIN32
 #error "Not yet supported"
 #else

@@ -44,151 +44,17 @@ namespace input {
     }
 
 
-    InputSenderXEvent::InputSenderXEvent()
-        : _window(BadWindow)
-    {
-        _display = XOpenDisplay(nullptr);
-        _root = DefaultRootWindow(_display);
-    }
-
-    InputSenderXEvent::~InputSenderXEvent()
-    {
-        XCloseDisplay(_display);
-    }
-
-    bool InputSenderXEvent::attach(const char* title)
-    {
-        _window = findWindowByName(_display, _root, title);
-        return _window != BadWindow;
-    };
-
-    void InputSenderXEvent::sendKey(bool pressed, KeySym key) const
-    {
-        auto keycode = XKeysymToKeycode(_display, key);
-        if (keycode == NoSymbol)
-            return;
-
-        auto mask = pressed ? KeyPressMask : KeyReleaseMask;
-        auto type = pressed ? KeyPress : KeyRelease;
-
-        XEvent event;
-        event.type = type;
-        event.xkey = XKeyEvent {
-            .type = type,
-            .serial = 0,
-            .send_event = True,
-            .display = _display,
-            .window = _window,
-            .root = _root,
-            .subwindow = None,
-            .time = CurrentTime,
-            .x = 1,
-            .y = 1,
-            .x_root = 1,
-            .y_root = 1,
-            .state = 0,
-            .keycode = keycode,
-            .same_screen = True
-        };
-
-        XSendEvent(_display, _window, False, mask, &event);
-    }
-
-    void InputSenderXEvent::sendMouse(bool pressed, unsigned int button) const
-    {
-        auto mask = pressed ? ButtonPressMask : ButtonReleaseMask;
-        auto type = pressed ? ButtonPress : ButtonRelease;
-
-        XEvent event;
-        event.type = type;
-
-#pragma GCC diagnostic push
-#pragma GCC diagnostic ignored "-Wmissing-field-initializers"
-        event.xbutton = XButtonEvent {
-            .type = type,
-            .serial = 0,
-            .send_event = True,
-            .display = _display,
-            .window = _window,
-            .time = CurrentTime,
-            .button = button,
-            .same_screen = True
-        };
-#pragma GCC diagnostic pop
-
-        XQueryPointer(_display, _window, &event.xbutton.root, &event.xbutton.subwindow,
-                &event.xbutton.x_root, &event.xbutton.y_root, &event.xbutton.x, &event.xbutton.y,
-                &event.xbutton.state);
-
-        XSendEvent(_display, _window, False, mask, &event);
-    }
-
-    void InputSenderXEvent::sendMouseMove(int x, int y, bool relative) const
-    {
-        XEvent event;
-#pragma GCC diagnostic push
-#pragma GCC diagnostic ignored "-Wmissing-field-initializers"
-        event.type = MotionNotify;
-        event.xmotion = XMotionEvent {
-            .type = MotionNotify,
-            .serial = 0,
-            .send_event = True,
-            .display = _display,
-            .window = _window,
-            .time = CurrentTime,
-            // .x = x,
-            // .y = y,
-            // .x_root = x,
-            // .y_root = y,
-            // .state = 0,
-            .is_hint = NotifyNormal,
-            .same_screen = True
-        };
-#pragma GCC diagnostic pop
-
-        Window root, child;
-        XQueryPointer(_display, _window, &root, &child, &event.xmotion.x_root, &event.xmotion.y_root,
-                &event.xmotion.x, &event.xmotion.y, &event.xmotion.state);
-
-        // Convert to relative movement
-        if (!relative)
-        {
-            x = x - event.xmotion.x;
-            y = y - event.xmotion.y;
-        }
-
-        // Do relative movement
-        event.xmotion.x += x;
-        event.xmotion.y += y;
-        event.xmotion.x_root += x;
-        event.xmotion.y_root += y;
-
-        event.xmotion.state |= PointerMotionMask;
-        XSendEvent(_display, _window, False, event.xmotion.state, &event);
-    }
-
-    void InputSenderXEvent::sendMouseWheel([[maybe_unused]] int x, [[maybe_unused]] int y) const
-    {
-    }
-
-    void InputSenderXEvent::flush() const
-    {
-        XFlush(_display);
-    }
-
-
-
-    InputSenderXTest::InputSenderXTest()
+    InputSender::InputSender()
     {
         _display = XOpenDisplay(nullptr);
     }
 
-    InputSenderXTest::~InputSenderXTest()
+    InputSender::~InputSender()
     {
         XCloseDisplay(_display);
     }
 
-    void InputSenderXTest::sendKey(bool pressed, KeySym key) const
+    void InputSender::sendKey(bool pressed, KeySym key) const
     {
         // These don't map directly to xlib button values, so we handle them manually.
         if (key == SDLK_RETURN)
@@ -204,12 +70,12 @@ namespace input {
             XTestFakeKeyEvent(_display, keycode, pressed, CurrentTime);
     }
 
-    void InputSenderXTest::sendMouse(bool pressed, unsigned int button) const
+    void InputSender::sendMouse(bool pressed, unsigned int button) const
     {
         XTestFakeButtonEvent(_display, button, pressed, CurrentTime);
     }
 
-    void InputSenderXTest::sendMouseMove(int x, int y, bool relative) const
+    void InputSender::sendMouseMove(int x, int y, bool relative) const
     {
         if (relative)
             XTestFakeRelativeMotionEvent(_display, x, y, CurrentTime);
@@ -217,7 +83,7 @@ namespace input {
             XTestFakeMotionEvent(_display, 0, x, y, CurrentTime);
     }
 
-    void InputSenderXTest::sendMouseWheel([[maybe_unused]] int x, int y) const
+    void InputSender::sendMouseWheel([[maybe_unused]] int x, int y) const
     {
         for (int i = 0; i < std::abs(y); ++i)
         {
@@ -234,12 +100,12 @@ namespace input {
         }
     }
 
-    void InputSenderXTest::flush() const
+    void InputSender::flush() const
     {
         XFlush(_display);
     }
 
-    bool InputSenderXTest::attach([[maybe_unused]] const char* title)
+    bool InputSender::attach([[maybe_unused]] const char* title)
     {
         return true;
     };

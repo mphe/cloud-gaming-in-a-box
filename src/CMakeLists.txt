@@ -83,21 +83,13 @@ target_link_libraries(frontend PRIVATE
 
 # Platform specific libraries
 if (UNIX)
-    # Compile X11 input test project
-    add_executable(xorg_test
-        syncinput/xorg_test_main.cpp
-        syncinput/input_sender/xorg.cpp
-        )
-
     # Add X11 sources to syncinput
     target_sources(syncinput PRIVATE syncinput/input_sender/xorg.cpp)
 
     # Include and link X11
     find_package(X11 REQUIRED)
     target_include_directories(syncinput SYSTEM PRIVATE ${X11_INCLUDE_DIR})
-    target_include_directories(xorg_test SYSTEM PRIVATE ${X11_INCLUDE_DIR})
     target_link_libraries(syncinput PRIVATE ${X11_LIBRARIES} -lXtst)
-    target_link_libraries(xorg_test PRIVATE ${X11_LIBRARIES} -lXtst)
 elseif (WIN32)
     # TODO: Implement and add windows sources to syncinput
 endif()
