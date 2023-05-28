@@ -44,20 +44,27 @@ find_path(AVUTIL_INCLUDE_DIR libavutil/avutil.h REQUIRED)
 find_library(AVUTIL_LIBRARY avutil REQUIRED)
 
 # Define executables
+add_library(shared STATIC
+    socket/tcp.cpp
+    input/protocol.cpp
+    )
+target_include_directories(shared PRIVATE ${PROJECT_SOURCE_DIR})
+
 add_executable(syncinput
     syncinput/syncinput.cpp
-    syncinput/event.cpp
-    socket/tcp.cpp
     )
+target_include_directories(syncinput PRIVATE
+    ${PROJECT_SOURCE_DIR}
+    ${SDL2_INCLUDE_DIRS}
+    )
+target_link_libraries(syncinput PRIVATE shared)
 
 add_executable(frontend
     frontend/frontend.cpp
     frontend/av.cpp
     frontend/ui.cpp
-    socket/tcp.cpp
     )
 
-target_include_directories(syncinput PRIVATE ${PROJECT_SOURCE_DIR})
 target_include_directories(frontend SYSTEM PRIVATE
     ${PROJECT_SOURCE_DIR}
     ${SDL2_INCLUDE_DIRS}
@@ -65,7 +72,9 @@ target_include_directories(frontend SYSTEM PRIVATE
     ${AVFORMAT_INCLUDE_DIR}
     ${AVUTIL_INCLUDE_DIR}
     )
+
 target_link_libraries(frontend PRIVATE
+    shared
     ${SDL2_LIBRARIES}
     ${AVCODEC_LIBRARY}
     ${AVFORMAT_LIBRARY}
@@ -77,18 +86,18 @@ if (UNIX)
     # Compile X11 input test project
     add_executable(xorg_test
         syncinput/xorg_test_main.cpp
-        syncinput/input/xorg.cpp
+        syncinput/input_sender/xorg.cpp
         )
 
     # Add X11 sources to syncinput
-    target_sources(syncinput PRIVATE syncinput/input/xorg.cpp)
+    target_sources(syncinput PRIVATE syncinput/input_sender/xorg.cpp)
 
     # Include and link X11
     find_package(X11 REQUIRED)
     target_include_directories(syncinput SYSTEM PRIVATE ${X11_INCLUDE_DIR})
     target_include_directories(xorg_test SYSTEM PRIVATE ${X11_INCLUDE_DIR})
-    target_link_libraries(syncinput ${X11_LIBRARIES} -lXtst)
-    target_link_libraries(xorg_test  ${X11_LIBRARIES} -lXtst)
+    target_link_libraries(syncinput PRIVATE ${X11_LIBRARIES} -lXtst)
+    target_link_libraries(xorg_test PRIVATE ${X11_LIBRARIES} -lXtst)
 elseif (WIN32)
     # TODO: Implement and add windows sources to syncinput
 endif()

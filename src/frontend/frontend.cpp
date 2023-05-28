@@ -6,6 +6,7 @@
 #include <mutex>
 
 #define USE_VIDEO_THREADING
+#define USE_AUDIO
 
 using std::endl;
 using std::cout;
@@ -13,7 +14,7 @@ using std::cerr;
 
 std::mutex vMutex;
 
-void processV(frontend::AVStream& stream, AVFrame* avFrame, SDL_Texture* texFrame, bool* running) {
+void processV(frontend::AVStream& stream, AVFrame* avFrame, bool* running) {
     auto video = stream.video();
 
     while (*running) {
@@ -22,16 +23,15 @@ void processV(frontend::AVStream& stream, AVFrame* avFrame, SDL_Texture* texFram
 
         {
             std::lock_guard<std::mutex> guard(vMutex);
-            // av_frame_unref(avFrame);
 
             if (!stream.retrieveFrame(video, avFrame))
                 break;
         }
     }
-    // av_frame_unref(avFrame);
     cout << "Video EOF\n";
 }
 
+#ifdef USE_AUDIO
 void processA(frontend::AVStream& stream, AVFrame* avFrame, SDL_AudioDeviceID dev, bool* running) {
     auto audio = stream.audio();
     auto sampleBufSize = av_get_bytes_per_sample(audio->sample_fmt);
@@ -69,21 +69,66 @@ SDL_AudioDeviceID openAudio(const AVCodecContext* audio) {
     wanted.freq = audio->sample_rate;
     wanted.format = AUDIO_F32;
     wanted.channels = audio->ch_layout.nb_channels;
-    wanted.samples = 1024;  // Good low-latency value for callback
+    wanted.samples = 128;  // Good low-latency value
     wanted.callback = nullptr;
     wanted.userdata = nullptr;
     return SDL_OpenAudioDevice(nullptr, 0, &wanted, nullptr, 0);
+}
+#endif
+
+
+void help() {
+    cout << "Usage: frontend <video filename/URL> <audio filename/URL> <syncinput IP> <syncinput port>\n";
+    cout << "Live-streams the given video and audio streams while transmitting inputs to the given syncinput server.";
+}
+
+
+TCPSocket establishConnection(const char* host, const char* port, int tries) {
+    TCPSocket client;
+    cout << "Connecting to " << host << ":" << port << "..." << endl;
+
+    for (int i = 0; i < tries; ++i) {
+        if (client.connect(host, port)) {
+            client.setNagleAlgorithm(false);
+            break;
+        }
+
+        cerr << "Failed to connect. Retrying in 1s.\n";
+        sleep(1);
+    }
+
+    return client;
 }
 
 
 int main(int argc, char *argv[]) {
     if (argc < 2) {
+        help();
         cerr << "Missing video filename/URL\n";
         return 1;
     }
 
     if (argc < 3) {
+        help();
         cerr << "Missing audio filename/URL\n";
+        return 1;
+    }
+
+    if (argc < 4) {
+        help();
+        cerr << "Missing syncinput IP\n";
+        return 1;
+    }
+
+    if (argc < 5) {
+        help();
+        cerr << "Missing syncinput Port\n";
+        return 1;
+    }
+
+    TCPSocket client = establishConnection(argv[3], argv[4], 5);
+    if (!client.isValid()) {
+        cerr << "Failed to establish connection\n";
         return 1;
     }
 
@@ -91,17 +136,20 @@ int main(int argc, char *argv[]) {
     if (!videoStream.open(argv[1]))
         return 1;
 
-    frontend::AVStream audioStream;
-    if (!audioStream.open(argv[2]))
-        return 1;
-
     auto video = videoStream.video();
-    auto audio = audioStream.audio();
-
     frontend::UI ui;
+
     if (!ui.init(video->width, video->height, false))
         return 1;
 
+#ifdef USE_AUDIO
+    frontend::AVStream audioStream;
+    audioStream.format()->probesize = 16;  // low latency audio
+
+    if (!audioStream.open(argv[2]))
+        return 1;
+
+    auto audio = audioStream.audio();
     auto audioDev = openAudio(audio);
     if (audioDev <= 0) {
         cerr << "Couldn't open audio: " << SDL_GetError() << endl;
@@ -109,25 +157,30 @@ int main(int argc, char *argv[]) {
     }
 
     SDL_PauseAudioDevice(audioDev, 0);
+#endif
 
+    input::InputTransmitter inputTransmitter(client);
     auto texFrame = ui.getFrameTexture();
     AVFrame *videoFrame = av_frame_alloc();
-    AVFrame *audioFrame = av_frame_alloc();
     bool running = true;
+
+#ifdef USE_AUDIO
+    AVFrame *audioFrame = av_frame_alloc();
     std::thread audioThread(processA, std::ref(audioStream), audioFrame, audioDev, &running);
+#endif
 
 #ifdef USE_VIDEO_THREADING
-    std::thread videoThread(processV, std::ref(videoStream), videoFrame, texFrame, &running);
+    std::thread videoThread(processV, std::ref(videoStream), videoFrame, &running);
 #endif
 
     while (running) {
-        running = ui.handleInput();
+        running = ui.handleInput(inputTransmitter);
 
 #ifndef USE_VIDEO_THREADING
-        if (!stream.readPacket())
+        if (!videoStream.readPacket())
             running = false;
 
-        if (!stream.retrieveFrame(video, videoFrame))
+        if (!videoStream.retrieveFrame(video, videoFrame))
             running = false;
 #endif
 
@@ -141,16 +194,15 @@ int main(int argc, char *argv[]) {
                     videoFrame->data[2], videoFrame->linesize[2]);
         }
 
-        {
-            // std::lock_guard<std::mutex> guard(avMutex);
-            ui.renderFrame();
-            ui.present();
-        }
+        ui.renderFrame();
+        ui.present();
     }
 
+#ifdef USE_AUDIO
     audioThread.join();
     av_frame_free(&audioFrame);
     SDL_CloseAudioDevice(audioDev);
+#endif
 
 #ifdef USE_VIDEO_THREADING
     videoThread.join();

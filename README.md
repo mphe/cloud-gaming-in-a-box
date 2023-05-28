@@ -18,9 +18,9 @@
     ```
 4. Build frontend and syncinput
     ```sh
-    mkdir src/build
-    cd src/build
-    cmake -DCMAKE_BUILD_TYPE=Release ..
+    mkdir build
+    cd build
+    cmake -DCMAKE_BUILD_TYPE=Release ../src
     make -j
     ```
 

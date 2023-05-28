@@ -3,11 +3,7 @@
 
 // Based on https://github.com/leandromoreira/ffmpeg-libav-tutorial
 
-extern "C" {
-#include <libavcodec/avcodec.h>
-#include <libavformat/avformat.h>
-// #include "libavutil/opt.h"
-}
+// For low latency settings: http://trac.ffmpeg.org/wiki/StreamingGuide
 
 using std::cout;
 using std::cerr;
@@ -31,20 +27,21 @@ namespace frontend {
     }
 
     bool AVStream::open(const char *inputPath) {
-        _formatCtx->max_delay = 0;
-        // _formatCtx->probesize = 64;
-
         AVDictionary *options = nullptr;
         av_dict_set(&options, "protocol_whitelist", "file,udp,rtp", 0);
+        av_dict_set(&options, "max_delay", "0", 0);
+        av_dict_set(&options, "nobuffer", "", 0);
 
         if (avformat_open_input(&_formatCtx, inputPath, nullptr, &options) < 0) {
             cerr << "Failed to open " << inputPath << endl;
-            av_dict_free(&options);
+            if (options)
+                av_dict_free(&options);
             return false;
         }
 
         cout << "Opened input " << inputPath << endl;
-        av_dict_free(&options);
+        if (options)
+            av_dict_free(&options);
         cout << "Format: " << _formatCtx->iformat->name << endl;
 
         if (avformat_find_stream_info(_formatCtx, nullptr) < 0) {
@@ -116,25 +113,21 @@ namespace frontend {
             return nullptr;
         }
 
-        // Set codec to automatically determine how many threads suits best for the
-        // decoding job
+        // Set codec to automatically determine how many threads suits best for the decoding job
         codecContext->thread_count = 0;
+        // codecContext->thread_type = FF_THREAD_FRAME;
         // codecContext->thread_type = FF_THREAD_SLICE;
         codecContext->flags |= AV_CODEC_FLAG_LOW_DELAY;
         codecContext->delay = 0;
-        codecContext->max_b_frames = 0;
-        // av_opt_set(codecContext->priv_data, "tune", "zerolatency", 0);
 
-        // if (codec->capabilities & AV_CODEC_CAP_FRAME_THREADS)
-        //     codecContext->thread_type = FF_THREAD_FRAME;
-        // else if (codec->capabilities & AV_CODEC_CAP_SLICE_THREADS)
-        //     codecContext->thread_type = FF_THREAD_SLICE;
-        // else
-        //     codecContext->thread_count = 1; // Don't use multithreading
+        if (params->codec_type == AVMEDIA_TYPE_VIDEO) {
+            codecContext->max_b_frames = 0;
+        }
 
         AVDictionary *options = nullptr;
         av_dict_set(&options, "preset", "ultrafast", 0);
         av_dict_set(&options, "tune", "fastdecode", 0);
+        // av_opt_set(codecContext->priv_data, "tune", "zerolatency", 0);
 
         if (avcodec_open2(codecContext, codec, nullptr) < 0) {
             cerr << "Failed to open codec\n";
@@ -147,11 +140,15 @@ namespace frontend {
         return codecContext;
     }
 
-    AVCodecContext *AVStream::audio() {
+    AVCodecContext* AVStream::audio() {
         return _audio;
     }
 
-    AVCodecContext *AVStream::video() {
+    AVCodecContext* AVStream::video() {
         return _video;
+    }
+
+    AVFormatContext* AVStream::format() {
+        return _formatCtx;
     }
 } // namespace frontend

@@ -1,7 +1,7 @@
 #include <iostream>
 #include <X11/keysym.h>
 #include <unistd.h>
-#include "input/xorg.hpp"
+#include "input_sender/xorg.hpp"
 #include <X11/extensions/XTest.h>
 
 using namespace std;
@@ -33,7 +33,7 @@ int main(int argc, char *argv[])
 
     return 0;
 
-    InputSenderXEvent sender;
+    input::InputSenderXEvent sender;
 
     if (sender.attach(searchTitle))
         cout << "Found: " << searchTitle << endl;
@@ -43,7 +43,7 @@ int main(int argc, char *argv[])
         return 1;
     }
 
-    Window target = findWindowByName(display, DefaultRootWindow(display), searchTitle);
+    Window target = input::findWindowByName(display, DefaultRootWindow(display), searchTitle);
     XSetInputFocus(display, target, RevertToParent, CurrentTime);
     // XSetInputFocus(display, DefaultRootWindow(display), RevertToParent, CurrentTime);
 

@@ -20,7 +20,8 @@ namespace frontend {
             return false;
         }
 
-        Uint32 flags = vsync ? SDL_WINDOW_FULLSCREEN_DESKTOP : 0;
+        Uint32 flags = SDL_WINDOW_MOUSE_CAPTURE | SDL_WINDOW_FULLSCREEN_DESKTOP;
+        // Uint32 flags = SDL_WINDOW_MOUSE_CAPTURE;
         _window = SDL_CreateWindow("Frontend", 0, 0, width, height, flags);
 
         if (!_window) {
@@ -28,7 +29,9 @@ namespace frontend {
             return false;
         }
 
-        _renderer = SDL_CreateRenderer(_window, -1, SDL_RENDERER_ACCELERATED | SDL_RENDERER_PRESENTVSYNC);
+        SDL_SetRelativeMouseMode(SDL_TRUE);
+
+        _renderer = SDL_CreateRenderer(_window, -1, SDL_RENDERER_ACCELERATED | (vsync ? SDL_RENDERER_PRESENTVSYNC : 0));
 
         if (!_renderer) {
             cerr << "Failed to create renderer\n";
@@ -49,15 +52,35 @@ namespace frontend {
         return true;
     }
 
-    bool UI::handleInput() {
+    bool UI::handleInput(const input::InputTransmitter& transmitter) {
         SDL_Event event;
         bool stop = false;
 
         while (SDL_PollEvent(&event)) {
             switch (event.type) {
                 case SDL_KEYDOWN:
-                    if (event.key.keysym.sym == SDLK_ESCAPE)
-                        stop = true;
+                    if (!event.key.repeat)
+                        transmitter.sendKey(event.key.keysym.sym, true);
+                    break;
+
+                case SDL_KEYUP:
+                    transmitter.sendKey(event.key.keysym.sym, false);
+                    break;
+
+                case SDL_MOUSEBUTTONDOWN:
+                    transmitter.sendMouseButton(event.button.button, true);
+                    break;
+
+                case SDL_MOUSEBUTTONUP:
+                    transmitter.sendMouseButton(event.button.button, false);
+                    break;
+
+                case SDL_MOUSEMOTION:
+                    transmitter.sendMouseMotion(event.motion.xrel, event.motion.yrel);
+                    break;
+
+                case SDL_MOUSEWHEEL:
+                    transmitter.sendMouseWheel(event.wheel.x, event.wheel.y);
                     break;
 
                 case SDL_QUIT:

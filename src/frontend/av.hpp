@@ -3,6 +3,7 @@
 
 extern "C" {
 #include <libavcodec/avcodec.h>
+#include <libavformat/avformat.h>
 }
 
 class AVCodec;
@@ -22,8 +23,9 @@ namespace frontend {
             bool open(const char *inputPath);
             bool readPacket();
             bool retrieveFrame(AVCodecContext* codec, AVFrame* frame) const;
-            AVCodecContext *video();
-            AVCodecContext *audio();
+            AVCodecContext* video();
+            AVCodecContext* audio();
+            AVFormatContext* format();
 
           private:
             static AVCodecContext *_create_codec(const AVCodec *codec, const AVCodecParameters *params);

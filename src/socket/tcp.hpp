@@ -18,14 +18,21 @@ class Socket
 {
     public:
         Socket();
-        Socket(bool block);
+        Socket(SOCKET socket);
+        Socket(Socket&& socket);
+        Socket& operator=(Socket&& socket);
         virtual ~Socket();
+
+        // Delete copy constructor and copy assignment because destructor closes socket.
+        Socket(const Socket&) = delete;
+        Socket& operator=(const Socket&) = delete;
 
         SOCKET handle() const;
         void close();
         void setNagleAlgorithm(bool active) const;
+        bool isValid() const;
 
-    protected:
+      protected:
         SOCKET _socket;
 
 #ifdef _WIN32
@@ -43,12 +50,15 @@ class Socket
 
 class TCPSocket : public Socket
 {
-    friend class TCPListener;
-
     public:
+        TCPSocket() = default;
+        TCPSocket(SOCKET socket);
+
         bool connect(const char* host, const char* port);
+        int listen(const char* host, const char* port);
         int send(const char* buffer, unsigned int bufsize) const;
-        int recv(char* buffer, unsigned int bufsize) const;
+        int recv(char* buffer, unsigned int bufsize, int flags = 0) const;
+        TCPSocket accept() const;
 };
 
 #endif

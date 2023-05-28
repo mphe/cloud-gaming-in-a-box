@@ -1,85 +1,106 @@
 #include <iostream>
-#include <string_view>
-#include <string.h>
-#include <unistd.h>
+#include <unistd.h>  // sleep
+#include "input/protocol.hpp"
 #include "socket/tcp.hpp"
-#include "event.hpp"
+#include "input_sender/input_sender.hpp"
 
-using std::string;
 using std::cout;
 using std::cerr;
 using std::endl;
 
 
-int main(int argc, char *argv[])
-{
-    bool isDxGame = false;  // This is just here for future when linux and windows versions are merged
+void help() {
+    cout << "Usage: syncinput <window title> [ip] [port]\n";
+    cout << "Listens on the given IP and port, or localhost:9090 by default, for inputs and sends them to the window with the given title.\n";
+}
+
+
+bool attach(input::InputSender& input, const char* winTitle, int maxTries) {
+    for (int i = 0; i < maxTries; ++i)
+    {
+        if (input.attach(winTitle))
+            return true;
+        cout << "Waiting for window with name '" << winTitle << "'...\n";
+        sleep(1);
+    }
+    return false;
+}
+
+
+TCPSocket establishConnection(const char* host, const char* port) {
+    TCPSocket listener, client;
+    listener.listen(host, port);
+    cout << "Listening on " << host << ":" << port << "..." << endl;
+
+    do {
+        client = listener.accept();
+        cout << "Client accepted\n";
+    } while (!client.isValid());
+
+    listener.close();
+    client.setNagleAlgorithm(false);
+    cout << "Connection established, closing listener\n";
+    return client;
+}
+
+
+int main(int argc, char *argv[]) {
     const char* host = "127.0.0.1";
     const char* port = "9090";
-    const char* winTitle = nullptr;
 
     // Parse args
-    if (argc > 1)
-        winTitle = argv[1];
-    else
-    {
+    if (argc < 2) {
+        help();
         cerr << "Missing window title\n";
         return 1;
     }
 
-    if (argc > 2 && strcmp(argv[2], "game") == 0)
-        isDxGame = true;
+    if (argc > 2)
+        host = argv[2];
 
-    if (argc > 4)
-        host = argv[4];
+    if (argc > 3)
+        port = argv[3];
 
-    // Attach to target window
-    EventProcessor processor(isDxGame);
+    TCPSocket client = establishConnection(host, port);
+    input::InputTransmitter inputTransmitter(client);
 
-    if (!processor.attach(winTitle))
+    input::InputSender inputSender;
+    if (!attach(inputSender, argv[1], 5))
     {
         cerr << "Failed to attach to window\n";
         return 1;
     }
 
-    // Init TCP connection
-    cout << "Connecting...\n";
-    TCPSocket socket;
-    socket.setNagleAlgorithm(false);
+    while (client.isValid()) {
+        input::InputEvent event;
 
-    if (!socket.connect(host, port)) {
-        cerr << "Failed to connect to " << host << ":" << port << endl;
-        return 1;
-    }
-
-    cout << "Connected\n";
-
-    // Main loop
-    char buf[2048];
-
-    while (true) {
-        int nrecv = socket.recv(buf, sizeof(buf));
-
-        if (nrecv == 0)
-        {
-            cerr << "Connection closed\n";
+        if (!inputTransmitter.recv(&event))
             break;
-        }
-        else if (nrecv == -1)
-        {
-            cerr << "An error occurred\n";
-            break;
-        }
-        else if (nrecv == 1 && buf[0] == 0)  // Received ping?
-        {
-            cout << "ping\n";
-            continue;
+
+        switch (event.type) {
+            case input::InputEventType::EventKey:
+                // cout << "key received " << event.key.key << " " << event.key.pressed << endl;
+                inputSender.sendKey(event.key.pressed, event.key.key);
+                break;
+            case input::InputEventType::EventMouseButton:
+                // cout << "mouse received " << static_cast<int>(event.button.button) << " " << event.button.pressed << endl;
+                inputSender.sendMouse(event.button.pressed, event.button.button);
+                break;
+            case input::InputEventType::EventMouseMotion:
+                // cout << "motion received " << event.motion.x << " " << event.motion.y << endl;
+                inputSender.sendMouseMove(event.motion.x, event.motion.y, true);
+                break;
+            case input::InputEventType::EventMouseWheel:
+                // cout << "wheel received " << event.wheel.x << " " << event.wheel.y << endl;
+                inputSender.sendMouseWheel(event.wheel.x, event.wheel.y);
+                break;
+
+            default:
+                cerr << "Invalid event type: " << static_cast<int>(event.type) << endl;
         }
 
-        processor.processMessage(std::string_view(buf, nrecv));
+        inputSender.flush();
     }
-
-    socket.close();
 
     return 0;
 }
