@@ -145,7 +145,7 @@ int main(int argc, char *argv[]) {
 
 #ifdef USE_AUDIO
     frontend::AVStream audioStream;
-    audioStream.format()->probesize = 16;  // low latency audio
+    audioStream.format()->probesize = 0;  // low latency audio
 
     if (!audioStream.open(argv[2]))
         return 1;
