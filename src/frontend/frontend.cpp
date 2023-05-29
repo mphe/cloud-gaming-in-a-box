@@ -83,63 +83,32 @@ void help() {
 }
 
 
-net::Socket establishConnection(const char* host, const char* port, int tries, net::SocketType type) {
-    net::Socket client;
-    cout << "Connecting to " << host << ":" << port << "..." << endl;
-
-    for (int i = 0; i < tries; ++i) {
-        if (client.connect(type, host, port)) {
-            client.setNagleAlgorithm(false);
-            cout << "Connection established to syncinput\n";
-            break;
-        }
-
-        cerr << "Failed to connect. Retrying in 1s.\n";
-        sleep(1);
-    }
-
-    return client;
-}
-
-
 int main(int argc, char *argv[]) {
-    if (argc < 2) {
-        help();
-        cerr << "Missing video filename/URL\n";
-        return 1;
-    }
-
-    if (argc < 3) {
-        help();
-        cerr << "Missing audio filename/URL\n";
-        return 1;
-    }
-
-    if (argc < 4) {
-        help();
-        cerr << "Missing syncinput IP\n";
-        return 1;
-    }
-
     if (argc < 5) {
         help();
-        cerr << "Missing syncinput Port\n";
+        cerr << "Missing arguments\n";
         return 1;
     }
 
-    net::Socket client = establishConnection(argv[3], argv[4], 5, net::TCP);
-    if (!client.isValid()) {
+    const char* videoURL = argv[1];
+    const char* audioURL = argv[2];
+    const char* syncinputIP = argv[3];
+    const char* syncinputPort = argv[4];
+
+    input::InputTransmitter inputTransmitter;
+    if (!inputTransmitter.connect(syncinputIP, syncinputPort, net::TCP)) {
         cerr << "Failed to establish connection\n";
         return 1;
     }
 
     frontend::AVStream videoStream;
-    if (!videoStream.open(argv[1]))
+    if (!videoStream.open(videoURL))
         return 1;
 
-    auto video = videoStream.video();
     frontend::UI ui;
+    auto video = videoStream.video();
 
+    // Initialize SDL before opening audio device.
     if (!ui.init(video->width, video->height, false))
         return 1;
 
@@ -147,7 +116,7 @@ int main(int argc, char *argv[]) {
     frontend::AVStream audioStream;
     audioStream.format()->probesize = 0;  // low latency audio
 
-    if (!audioStream.open(argv[2]))
+    if (!audioStream.open(audioURL))
         return 1;
 
     auto audio = audioStream.audio();
@@ -160,7 +129,6 @@ int main(int argc, char *argv[]) {
     SDL_PauseAudioDevice(audioDev, 0);
 #endif
 
-    input::InputTransmitter inputTransmitter(client);
     auto texFrame = ui.getFrameTexture();
     AVFrame *videoFrame = av_frame_alloc();
     bool running = true;

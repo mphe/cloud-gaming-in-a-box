@@ -27,63 +27,31 @@ bool attach(input::InputSender& input, const char* winTitle, int maxTries) {
 }
 
 
-net::Socket establishConnection(const char* host, const char* port, net::SocketType type) {
-    cout << "Listening on " << host << ":" << port << "..." << endl;
-
-    net::Socket listener, client;
-    if (!listener.listen(type, host, port)) {
-        cerr << "Failed to start listener\n";
-        return client;
-    }
-
-    if (type == net::UDP)
-        return listener;
-
-    // TCP
-    do {
-        client = listener.accept();
-        cout << "Client accepted\n";
-    } while (!client.isValid());
-
-    cout << "Connection established to frontend, closing listener\n";
-    listener.close();
-    client.setNagleAlgorithm(false);
-    return client;
-}
-
-
 int main(int argc, char *argv[]) {
-    const char* host = "127.0.0.1";
-    const char* port = "9090";
-
-    if (argc < 2) {
+    if (argc < 4) {
         help();
-        cerr << "Missing window title\n";
+        cerr << "Missing arguments\n";
         return 1;
     }
 
-    if (argc > 2)
-        host = argv[2];
+    const char* winTitle = argv[1];
+    const char* host = argv[2];
+    const char* port = argv[3];
 
-    if (argc > 3)
-        port = argv[3];
-
-    net::Socket client = establishConnection(host, port, net::TCP);
-    if (!client.isValid()) {
+    input::InputTransmitter inputTransmitter;
+    if (!inputTransmitter.listen(host, port, net::TCP)) {
         cerr << "Failed to establish connection\n";
         return 1;
     }
 
-    input::InputTransmitter inputTransmitter(client);
-
     input::InputSender inputSender;
-    if (!attach(inputSender, argv[1], 5))
+    if (!attach(inputSender, winTitle, 5))
     {
         cerr << "Failed to attach to window\n";
         return 1;
     }
 
-    while (client.isValid()) {
+    while (true) {
         input::InputEvent event;
 
         if (!inputTransmitter.recv(&event))

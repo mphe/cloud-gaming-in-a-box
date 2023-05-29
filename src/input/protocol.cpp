@@ -1,6 +1,7 @@
 #include "protocol.hpp"
 #include <cstring>
 #include <iostream>
+#include <unistd.h>
 
 // htonl
 #ifdef __linux__
@@ -14,8 +15,6 @@ using std::cerr;
 using std::endl;
 
 namespace input {
-    InputTransmitter::InputTransmitter(const net::Socket& socket) : socket(socket) {}
-
     void InputTransmitter::sendMouseButton(uint8_t button, bool pressed) const {
         _send(InputEvent {
             .type = htonl(EventMouseButton),
@@ -57,13 +56,13 @@ namespace input {
     }
 
     void InputTransmitter::_send(const InputEvent& event) const {
-        if (socket.send(reinterpret_cast<const char *>(&event), sizeof(InputEvent)) == -1)
+        if (_socket.send(reinterpret_cast<const char *>(&event), sizeof(InputEvent)) == -1)
             cerr << "An error occurred during send: " << errno << " " << std::strerror(errno) << endl;
 
     }
 
     bool InputTransmitter::recv(InputEvent* event) const {
-        int nrecv = socket.recv(reinterpret_cast<char*>(event), sizeof(InputEvent), MSG_WAITALL);
+        int nrecv = _socket.recv(reinterpret_cast<char*>(event), sizeof(InputEvent), MSG_WAITALL);
 
         if (nrecv == 0) {
             cout << "Connection closed\n";
@@ -98,6 +97,50 @@ namespace input {
                 break;
         }
 
+        return true;
+    }
+
+    bool InputTransmitter::connect(const char* host, const char* port, net::SocketType type, int maxTries) {
+        cout << "Connecting to " << host << ":" << port << "..." << endl;
+
+        for (int i = 0; i < maxTries; ++i) {
+            if (_socket.connect(type, host, port)) {
+                _socket.setNagleAlgorithm(false);
+                cout << "Connection established to syncinput\n";
+                return true;
+            }
+
+            cerr << "Failed to connect. Retrying in 1s.\n";
+            sleep(1);
+        }
+
+        return false;
+    }
+
+    bool InputTransmitter::listen(const char* host, const char* port, net::SocketType type) {
+        cout << "Starting listener on " << host << ":" << port << "..." << endl;
+
+        net::Socket listener;
+        if (!listener.listen(type, host, port)) {
+            cerr << "Failed to start listener\n";
+            return false;
+        }
+
+        if (type == net::UDP) {
+            _socket = std::move(listener);
+            return true;
+        }
+
+        // TCP
+        do {
+            cout << "Waiting for clients...\n";
+            _socket = listener.accept();
+            cout << "Client accepted\n";
+        } while (!_socket.isValid());
+
+        cout << "Connection established to frontend, closing listener\n";
+        listener.close();
+        _socket.setNagleAlgorithm(false);
         return true;
     }
 } // namespace input
