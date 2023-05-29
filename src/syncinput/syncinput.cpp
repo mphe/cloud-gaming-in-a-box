@@ -1,7 +1,6 @@
 #include <iostream>
 #include <unistd.h>  // sleep
-#include "input/protocol.hpp"
-#include "socket/tcp.hpp"
+#include "network/input.hpp"
 #include "input_sender/input_sender.hpp"
 
 using std::cout;
@@ -16,8 +15,7 @@ void help() {
 
 
 bool attach(input::InputSender& input, const char* winTitle, int maxTries) {
-    for (int i = 0; i < maxTries; ++i)
-    {
+    for (int i = 0; i < maxTries; ++i) {
         if (input.attach(winTitle))
             return true;
         cout << "Waiting for window with name '" << winTitle << "'...\n";
@@ -45,8 +43,7 @@ int main(int argc, char *argv[]) {
     }
 
     input::InputSender inputSender;
-    if (!attach(inputSender, winTitle, 5))
-    {
+    if (!attach(inputSender, winTitle, 5)) {
         cerr << "Failed to attach to window\n";
         return 1;
     }

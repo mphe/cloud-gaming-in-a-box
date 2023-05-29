@@ -45,8 +45,8 @@ find_library(AVUTIL_LIBRARY avutil REQUIRED)
 
 # Define executables
 add_library(shared STATIC
-    socket/tcp.cpp
-    input/protocol.cpp
+    network/socket.cpp
+    network/input.cpp
     )
 target_include_directories(shared PRIVATE ${PROJECT_SOURCE_DIR})
 

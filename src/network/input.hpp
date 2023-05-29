@@ -2,7 +2,7 @@
 #define INPUT_PROTOCOL_HPP
 
 #include <cstdint>
-#include "socket/tcp.hpp"
+#include "network/socket.hpp"
 
 namespace input {
     // NOTE: We use int32 for everything to have complete control over alignment and endianness.

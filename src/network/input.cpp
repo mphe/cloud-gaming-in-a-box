@@ -1,4 +1,4 @@
-#include "protocol.hpp"
+#include "input.hpp"
 #include <cstring>
 #include <iostream>
 #include <unistd.h>

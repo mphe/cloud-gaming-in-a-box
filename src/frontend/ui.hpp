@@ -1,5 +1,5 @@
 #include <SDL2/SDL.h>
-#include <input/protocol.hpp>
+#include "network/input.hpp"
 
 namespace frontend {
     class UI {
