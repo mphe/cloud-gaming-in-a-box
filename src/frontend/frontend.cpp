@@ -83,13 +83,14 @@ void help() {
 }
 
 
-TCPSocket establishConnection(const char* host, const char* port, int tries) {
-    TCPSocket client;
+net::Socket establishConnection(const char* host, const char* port, int tries, net::SocketType type) {
+    net::Socket client;
     cout << "Connecting to " << host << ":" << port << "..." << endl;
 
     for (int i = 0; i < tries; ++i) {
-        if (client.connect(host, port)) {
+        if (client.connect(type, host, port)) {
             client.setNagleAlgorithm(false);
+            cout << "Connection established to syncinput\n";
             break;
         }
 
@@ -126,7 +127,7 @@ int main(int argc, char *argv[]) {
         return 1;
     }
 
-    TCPSocket client = establishConnection(argv[3], argv[4], 5);
+    net::Socket client = establishConnection(argv[3], argv[4], 5, net::TCP);
     if (!client.isValid()) {
         cerr << "Failed to establish connection\n";
         return 1;

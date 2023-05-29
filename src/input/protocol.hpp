@@ -47,7 +47,7 @@ namespace input {
     class InputTransmitter
     {
         public:
-          InputTransmitter(const TCPSocket& socket);
+          InputTransmitter(const net::Socket& socket);
 
           void sendMouseButton(uint8_t button, bool pressed) const;
           void sendMouseMotion(int32_t x, int32_t y) const;
@@ -59,7 +59,7 @@ namespace input {
           void _send(const InputEvent& event) const;
 
         private:
-            const TCPSocket& socket;
+            const net::Socket& socket;
     };
 }
 

@@ -27,19 +27,27 @@ bool attach(input::InputSender& input, const char* winTitle, int maxTries) {
 }
 
 
-TCPSocket establishConnection(const char* host, const char* port) {
-    TCPSocket listener, client;
-    listener.listen(host, port);
+net::Socket establishConnection(const char* host, const char* port, net::SocketType type) {
     cout << "Listening on " << host << ":" << port << "..." << endl;
 
+    net::Socket listener, client;
+    if (!listener.listen(type, host, port)) {
+        cerr << "Failed to start listener\n";
+        return client;
+    }
+
+    if (type == net::UDP)
+        return listener;
+
+    // TCP
     do {
         client = listener.accept();
         cout << "Client accepted\n";
     } while (!client.isValid());
 
+    cout << "Connection established to frontend, closing listener\n";
     listener.close();
     client.setNagleAlgorithm(false);
-    cout << "Connection established, closing listener\n";
     return client;
 }
 
@@ -48,7 +56,6 @@ int main(int argc, char *argv[]) {
     const char* host = "127.0.0.1";
     const char* port = "9090";
 
-    // Parse args
     if (argc < 2) {
         help();
         cerr << "Missing window title\n";
@@ -61,7 +68,12 @@ int main(int argc, char *argv[]) {
     if (argc > 3)
         port = argv[3];
 
-    TCPSocket client = establishConnection(host, port);
+    net::Socket client = establishConnection(host, port, net::TCP);
+    if (!client.isValid()) {
+        cerr << "Failed to establish connection\n";
+        return 1;
+    }
+
     input::InputTransmitter inputTransmitter(client);
 
     input::InputSender inputSender;
@@ -94,9 +106,9 @@ int main(int argc, char *argv[]) {
                 // cout << "wheel received " << event.wheel.x << " " << event.wheel.y << endl;
                 inputSender.sendMouseWheel(event.wheel.x, event.wheel.y);
                 break;
-
             default:
                 cerr << "Invalid event type: " << static_cast<int>(event.type) << endl;
+                break;
         }
 
         inputSender.flush();

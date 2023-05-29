@@ -14,7 +14,7 @@ using std::cerr;
 using std::endl;
 
 namespace input {
-    InputTransmitter::InputTransmitter(const TCPSocket& socket) : socket(socket) {}
+    InputTransmitter::InputTransmitter(const net::Socket& socket) : socket(socket) {}
 
     void InputTransmitter::sendMouseButton(uint8_t button, bool pressed) const {
         _send(InputEvent {
@@ -58,7 +58,7 @@ namespace input {
 
     void InputTransmitter::_send(const InputEvent& event) const {
         if (socket.send(reinterpret_cast<const char *>(&event), sizeof(InputEvent)) == -1)
-            cerr << "An error occurred during send: " << std::strerror(errno) << endl;
+            cerr << "An error occurred during send: " << errno << " " << std::strerror(errno) << endl;
 
     }
 
@@ -70,7 +70,7 @@ namespace input {
             return false;
         }
         else if (nrecv == -1) {
-            cerr << "An error occurred during recv: " << std::strerror(errno) << endl;
+            cerr << "An error occurred during recv: " << errno << " " << std::strerror(errno) << endl;
             return false;
         }
 
