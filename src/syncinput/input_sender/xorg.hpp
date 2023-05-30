@@ -7,17 +7,17 @@
 namespace input {
     Window findWindowByName(Display* display, Window root, const char* name);
 
-    class InputSender : private IInputSender
+    class InputSender final : private IInputSender
     {
         public:
             InputSender();
-            ~InputSender() override;
+            ~InputSender() final;
 
             bool attach(const char* title) final;
-            void sendKey(bool pressed, unsigned long key) const override;
-            void sendMouse(bool pressed, unsigned int button) const override;
-            void sendMouseMove(int x, int y, bool relative) const override;
-            void sendMouseWheel(int x, int y) const override;
+            void sendKey(bool pressed, unsigned long key) const final;
+            void sendMouse(bool pressed, unsigned int button) const final;
+            void sendMouseMove(int x, int y, bool relative) const final;
+            void sendMouseWheel(int x, int y) const final;
             void flush() const final;
 
         private:
