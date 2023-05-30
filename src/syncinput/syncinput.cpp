@@ -9,7 +9,7 @@ using std::endl;
 
 
 void help() {
-    cout << "Usage: syncinput <window title> [ip] [port]\n";
+    cout << "Usage: syncinput <window title> <ip> <port> <tcp|udp>\n";
     cout << "Listens on the given IP and port, or localhost:9090 by default, for inputs and sends them to the window with the given title.\n";
 }
 
@@ -26,7 +26,7 @@ bool attach(input::InputSender& input, const char* winTitle, int maxTries) {
 
 
 int main(int argc, char *argv[]) {
-    if (argc < 4) {
+    if (argc < 5) {
         help();
         cerr << "Missing arguments\n";
         return 1;
@@ -35,9 +35,10 @@ int main(int argc, char *argv[]) {
     const char* winTitle = argv[1];
     const char* host = argv[2];
     const char* port = argv[3];
+    net::SocketType protocol = net::parseProtocol(argv[4]);
 
     input::InputTransmitter inputTransmitter;
-    if (!inputTransmitter.listen(host, port, net::TCP)) {
+    if (!inputTransmitter.listen(host, port, protocol)) {
         cerr << "Failed to establish connection\n";
         return 1;
     }

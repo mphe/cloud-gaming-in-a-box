@@ -78,13 +78,13 @@ SDL_AudioDeviceID openAudio(const AVCodecContext* audio) {
 
 
 void help() {
-    cout << "Usage: frontend <video filename/URL> <audio filename/URL> <syncinput IP> <syncinput port>\n";
+    cout << "Usage: frontend <video filename/URL> <audio filename/URL> <syncinput IP> <syncinput port> <tcp|udp>\n";
     cout << "Live-streams the given video and audio streams while transmitting inputs to the given syncinput server.";
 }
 
 
 int main(int argc, char *argv[]) {
-    if (argc < 5) {
+    if (argc < 6) {
         help();
         cerr << "Missing arguments\n";
         return 1;
@@ -94,9 +94,10 @@ int main(int argc, char *argv[]) {
     const char* audioURL = argv[2];
     const char* syncinputIP = argv[3];
     const char* syncinputPort = argv[4];
+    net::SocketType protocol = net::parseProtocol(argv[5]);
 
     input::InputTransmitter inputTransmitter;
-    if (!inputTransmitter.connect(syncinputIP, syncinputPort, net::TCP)) {
+    if (!inputTransmitter.connect(syncinputIP, syncinputPort, protocol)) {
         cerr << "Failed to establish connection\n";
         return 1;
     }

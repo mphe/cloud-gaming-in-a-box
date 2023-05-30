@@ -1,6 +1,8 @@
 #ifndef TCP_HPP
 #define TCP_HPP
 
+#include <string>
+
 #ifdef __linux__
 typedef int SOCKET;
 #elif defined(_WIN32)
@@ -13,8 +15,11 @@ typedef int SOCKET;
 namespace net {
     enum SocketType {
         UDP,
-        TCP
+        TCP,
+        UnsupportedProtocol
     };
+
+    SocketType parseProtocol(std::string str);
 
     class Socket
     {

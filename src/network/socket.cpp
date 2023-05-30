@@ -1,5 +1,8 @@
 #include "socket.hpp"
 #include <cstring>
+#include <cctype>
+#include <algorithm>
+#include <string>
 #include <utility>
 #include <cassert>
 
@@ -63,6 +66,17 @@ namespace net {
         return socket;
     }
 
+    SocketType parseProtocol(std::string str) {
+        // Convert to lower-case
+        std::transform(str.begin(), str.end(), str.begin(), [](unsigned char c) { return std::tolower(c); });
+
+        if (str == "tcp")
+            return TCP;
+        else if (str == "udp")
+            return UDP;
+
+        return UnsupportedProtocol;
+    }
 
     Socket::Socket() : _socket(INVALID_SOCKET) {}
 

@@ -8,6 +8,7 @@ AUDIO_OUT='rtp://127.0.0.1:4004'
 SYNCINPUT_IP='127.0.0.1'
 SYNCINPUT_PORT=9090
 BINARY_PATH="build"
+PROTOCOL=udp
 
 cleanup() {
     echo "Cleanup"
@@ -59,7 +60,7 @@ main() {
 
     if [ -z "$command" ] || [ "$command" == "syncinput" ]; then
         echo "syncinput"
-        DISPLAY="$OUT_DISPLAY" "$BINARY_PATH/syncinput" "$APP_TITLE" "$SYNCINPUT_IP" "$SYNCINPUT_PORT" &
+        DISPLAY="$OUT_DISPLAY" "$BINARY_PATH/syncinput" "$APP_TITLE" "$SYNCINPUT_IP" "$SYNCINPUT_PORT" "$PROTOCOL" &
         sleep 1
     fi
 
@@ -71,7 +72,7 @@ main() {
 
     if [ -z "$command" ] || [ "$command" == "frontend" ]; then
         echo "Frontend"
-        "$BINARY_PATH/frontend" video.sdp audio.sdp "$SYNCINPUT_IP" "$SYNCINPUT_PORT"
+        "$BINARY_PATH/frontend" video.sdp audio.sdp "$SYNCINPUT_IP" "$SYNCINPUT_PORT" "$PROTOCOL"
     fi
 }
 
