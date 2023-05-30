@@ -7,9 +7,10 @@
 1. `git submodule update --init --recursive`
 2. Install requirements
     ```sh
-    sudo apt install curl tmux golang make
-    sudo cloud-morph/setup.sh
+    sudo apt install curl tmux golang build-essential make cmake libsdl2-dev libsdl2-2.0-0 ffmpeg libavcodec-dev libavutil-dev libavformat-dev libxtst-dev xvfb
     ```
+    Install virtualgl: <https://virtualgl.org/vgldoc/2_1_3/#hd004001>
+
 3. Build toxiproxy
     ```sh
     cd toxiproxy
