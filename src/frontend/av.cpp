@@ -27,6 +27,7 @@ namespace frontend {
     }
 
     bool AVStream::open(const char *inputPath) {
+        _formatCtx->flags = AVFMT_FLAG_NOBUFFER | AVFMT_FLAG_FLUSH_PACKETS;
         AVDictionary *options = nullptr;
         av_dict_set(&options, "protocol_whitelist", "file,udp,rtp", 0);
         av_dict_set(&options, "max_delay", "0", 0);
@@ -116,8 +117,9 @@ namespace frontend {
         // Set codec to automatically determine how many threads suits best for the decoding job
         codecContext->thread_count = 0;
         // codecContext->thread_type = FF_THREAD_FRAME;
-        // codecContext->thread_type = FF_THREAD_SLICE;
+        codecContext->thread_type = FF_THREAD_SLICE;
         codecContext->flags |= AV_CODEC_FLAG_LOW_DELAY;
+        codecContext->flags |= AV_CODEC_FLAG2_FAST;
         codecContext->delay = 0;
 
         if (params->codec_type == AVMEDIA_TYPE_VIDEO) {
@@ -150,5 +152,22 @@ namespace frontend {
 
     AVFormatContext* AVStream::format() {
         return _formatCtx;
+    }
+
+
+    Frame::Frame() {
+        _frame = av_frame_alloc();
+    }
+
+    Frame::~Frame() {
+        av_frame_free(&_frame);
+    }
+
+    AVFrame *Frame::get() {
+        return _frame;
+    }
+
+    const AVFrame *Frame::get() const {
+        return _frame;
     }
 } // namespace frontend

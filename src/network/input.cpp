@@ -114,6 +114,7 @@ namespace input {
             sleep(1);
         }
 
+        cerr << "Failed to establish connection\n";
         return false;
     }
 

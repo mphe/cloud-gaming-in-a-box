@@ -1,18 +1,26 @@
-#include <iostream>
-#include <vector>
+#ifndef FRONTEND_AV_HPP
+#define FRONTEND_AV_HPP
 
 extern "C" {
 #include <libavcodec/avcodec.h>
 #include <libavformat/avformat.h>
 }
 
-class AVCodec;
-class AVCodecParameters;
-class AVFormatContext;
-class AVCodecContext;
-
 
 namespace frontend {
+    // Wrapper around AVFrame with automatic allocation and deallocation.
+    class Frame {
+        public:
+          Frame();
+          ~Frame();
+
+          AVFrame *get();
+          const AVFrame *get() const;
+
+        private:
+          AVFrame *_frame;
+    };
+
     class AVStream {
         public:
             AVStream();
@@ -39,3 +47,5 @@ namespace frontend {
             int _audioIdx;
     };
 }
+
+#endif

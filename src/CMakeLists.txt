@@ -63,6 +63,8 @@ add_executable(frontend
     frontend/frontend.cpp
     frontend/av.cpp
     frontend/ui.cpp
+    frontend/VideoService.cpp
+    frontend/AudioService.cpp
     )
 
 target_include_directories(frontend SYSTEM PRIVATE

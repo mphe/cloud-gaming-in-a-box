@@ -1,5 +1,6 @@
 #include "ui.hpp"
 #include <iostream>
+#include "VideoService.hpp"
 
 using std::cerr;
 
@@ -11,6 +12,8 @@ namespace frontend {
             SDL_DestroyRenderer(_renderer);
         if (_window)
             SDL_DestroyWindow(_window);
+        if (_frame)
+            SDL_DestroyTexture(_frame);
         SDL_Quit();
     }
 
@@ -21,7 +24,6 @@ namespace frontend {
         }
 
         Uint32 flags = SDL_WINDOW_MOUSE_CAPTURE | SDL_WINDOW_FULLSCREEN_DESKTOP;
-        // Uint32 flags = SDL_WINDOW_MOUSE_CAPTURE;
         _window = SDL_CreateWindow("Frontend", 0, 0, width, height, flags);
 
         if (!_window) {
@@ -45,18 +47,28 @@ namespace frontend {
             return false;
         }
 
+        // Setup user event
+        SDL_zero(_userEvent);
+        // It should suffice to use a generic user event
+        // _userEvent.type = SDL_RegisterEvents(1);
+        _userEvent.type = SDL_USEREVENT;
+
+        // Initially clear screen with black
         SDL_SetRenderDrawColor(_renderer, 0, 0, 0, 255);
         SDL_RenderClear(_renderer);
-        SDL_RenderCopy(_renderer, _frame, nullptr, nullptr);
 
         return true;
     }
 
-    bool UI::handleInput(const input::InputTransmitter& transmitter) {
-        SDL_Event event;
-        bool stop = false;
+    void UI::notifyTextureUpdate() {
+        SDL_PushEvent(&_userEvent);
+    }
 
-        while (SDL_PollEvent(&event)) {
+    void UI::run(const input::InputTransmitter& transmitter, const VideoService& video) {
+        SDL_Event event;
+        bool running = true;
+
+        while (running && SDL_WaitEvent(&event)) {
             switch (event.type) {
                 case SDL_KEYDOWN:
                     if (!event.key.repeat)
@@ -84,26 +96,18 @@ namespace frontend {
                     break;
 
                 case SDL_QUIT:
-                    stop = true;
+                    running = false;
+                    break;
+
+                case SDL_USEREVENT:
+                    video.updateSDLTexture(_frame);
+                    SDL_RenderCopy(_renderer, _frame, nullptr, nullptr);
+                    SDL_RenderPresent(_renderer);
                     break;
 
                 default:
                     break;
             }
         }
-
-        return !stop;
-    }
-
-    void UI::renderFrame() const {
-        SDL_RenderCopy(_renderer, _frame, nullptr, nullptr);
-    }
-
-    void UI::present() const {
-        SDL_RenderPresent(_renderer);
-    }
-
-    SDL_Texture *UI::getFrameTexture() {
-        return _frame;
     }
 } // namespace frontend

@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-FPS=60
+FPS=144
 OUT_DISPLAY=:99
 SINK_NAME=fakecloudgame
 SINK_ID=
@@ -19,6 +19,16 @@ cleanup() {
 main() {
     trap cleanup 0  # EXIT
 
+    if [ $# -lt 4 ]; then
+        echo "Usage: run_app.sh <app path> <app window title> <width> <height> [command]"
+        echo -e "    <app path>: Path to the application executable."
+        echo -e "    <app window title>: Window title of the application."
+        echo -e "    <width>: Width of the virtual display."
+        echo -e "    <height>: Height of the virtual display."
+        echo -e "    [command]: (Optional) One of either stream, syncinput, frontend. Only run the specified sub system instead of the whole stack."
+        return 0
+    fi
+
     local APP_PATH="$1"
     local APP_TITLE="$2"
     local WIDTH="$3"
@@ -36,13 +46,30 @@ main() {
         echo "Xvfb"
         Xvfb "$OUT_DISPLAY" -screen 0 "${WIDTH}x${HEIGHT}x24" &
 
+        echo "App"
+        # Flags mentioned in the arch wiki to improve virtualgl performance.
+        # https://wiki.archlinux.org/title/VirtualGL#rendering_glitches,_unusually_poor_performance,_or_application_errors
+        # VGL_ALLOWINDIRECT=1
+        # VGL_FORCEALPHA=1
+        # VGL_GLFLUSHTRIGGER=0
+        # VGL_READBACK=pbo
+        # VGL_SPOILLAST=0
+        # VGL_SYNC=1
+
+        # VGL_ALLOWINDIRECT seems to work good for warsow at least.
+        VGL_ALLOWINDIRECT=1 VGL_REFRESHRATE="$FPS" PULSE_SINK="$SINK_NAME" DISPLAY="$OUT_DISPLAY" vglrun "$APP_PATH" &
+
+        sleep 1
+
         echo "Video stream at $VIDEO_OUT"
-        ffmpeg -f x11grab -video_size "${WIDTH}x${HEIGHT}" -framerate "$FPS" -i "$OUT_DISPLAY" -draw_mouse 1 \
+                    # -crf 0 \
+        ffmpeg -threads 2 -r "$FPS" -f x11grab -video_size "${WIDTH}x${HEIGHT}" -framerate "$FPS" -i "$OUT_DISPLAY" -draw_mouse 1 \
             -pix_fmt yuv420p \
             -preset ultrafast -tune zerolatency \
             -c:v libx264 \
+            -quality realtime \
             -an \
-            -quality realtime -f rtp "$VIDEO_OUT" \
+            -f rtp "$VIDEO_OUT" \
             -sdp_file video.sdp \
             > /dev/null 2>&1 &
 
@@ -52,10 +79,6 @@ main() {
             -c:a libopus -b:a 48000 \
             -payload_type 111 -f rtp -max_delay 0 "$AUDIO_OUT" -sdp_file audio.sdp \
             > /dev/null 2>&1 &
-
-        echo "App"
-        PULSE_SINK="$SINK_NAME" DISPLAY="$OUT_DISPLAY" vglrun "$APP_PATH" &
-        sleep 1
     fi
 
     if [ -z "$command" ] || [ "$command" == "syncinput" ]; then
