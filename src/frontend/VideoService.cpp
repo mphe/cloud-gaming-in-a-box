@@ -5,6 +5,8 @@ namespace frontend {
     VideoService::VideoService() : _running(false) {}
 
     bool VideoService::open(const char* url) {
+        _stream.format()->max_analyze_duration = INT64_MAX - 1;
+        _stream.format()->probesize = INT64_MAX - 1;
         return _stream.open(url);
     }
 
