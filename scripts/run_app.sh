@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-FPS=144
+FPS=60
 OUT_DISPLAY=:99
 SINK_NAME=fakecloudgame
 SINK_ID=
@@ -22,10 +22,10 @@ main() {
     if [ $# -lt 4 ]; then
         echo "Usage: run_app.sh <app path> <app window title> <width> <height> [command]"
         echo -e "    <app path>: Path to the application executable."
-        echo -e "    <app window title>: Window title of the application."
+        echo -e "    <app window title>: Window title of the application. Used by syncinput to send input events to that window."
         echo -e "    <width>: Width of the virtual display."
         echo -e "    <height>: Height of the virtual display."
-        echo -e "    [command]: (Optional) One of either stream, syncinput, frontend. Only run the specified sub system instead of the whole stack."
+        echo -e "    [command]: (Optional) Either "stream", "syncinput", or "frontend". Only run the specified sub system instead of the whole stack."
         return 0
     fi
 
@@ -61,13 +61,18 @@ main() {
 
         sleep 1
 
+        # Presets and crf
+        # https://superuser.com/questions/1556953/why-does-preset-veryfast-in-ffmpeg-generate-the-most-compressed-file-compared
+        #
+        # NVidia hardware acceleration
+        # ffmpeg -help encoder=hevc_nvenc | less
+        # -c:v h264_nvenc -preset llhq -tune hq \
+        #
+        #
         echo "Video stream at $VIDEO_OUT"
-                    # -crf 0 \
-        ffmpeg -threads 2 -r "$FPS" -f x11grab -video_size "${WIDTH}x${HEIGHT}" -framerate "$FPS" -i "$OUT_DISPLAY" -draw_mouse 1 \
+        ffmpeg -threads 0 -r "$FPS" -f x11grab -video_size "${WIDTH}x${HEIGHT}" -framerate "$FPS" -i "$OUT_DISPLAY" -draw_mouse 1 \
             -pix_fmt yuv420p \
-            -preset ultrafast -tune zerolatency \
-            -c:v libx264 \
-            -quality realtime \
+            -c:v libx264 -preset ultrafast -tune zerolatency \
             -an \
             -f rtp "$VIDEO_OUT" \
             -sdp_file video.sdp \
