@@ -4,7 +4,7 @@
 #include <X11/extensions/XTest.h>
 #include <cmath>
 #include <string.h>
-#include <SDL2/SDL_keycode.h>
+#include <iostream>
 
 namespace input {
     Window findWindowByName(Display* display, Window root, const char* name)
@@ -56,17 +56,11 @@ namespace input {
 
     void InputSender::sendKey(bool pressed, KeySym key) const
     {
-        // These don't map directly to xlib button values, so we handle them manually.
-        if (key == SDLK_RETURN)
-            key = XK_Return;
-        else if (key == SDLK_ESCAPE)
-            key = XK_Escape;
-        else if (key == SDLK_BACKSPACE)
-            key = XK_BackSpace;
-
         auto keycode = XKeysymToKeycode(_display, key);
 
-        if (keycode != NoSymbol)
+        if (keycode == NoSymbol)
+            std::cerr << "Unknown key: " << key << std::endl;
+        else
             XTestFakeKeyEvent(_display, keycode, pressed, CurrentTime);
     }
 
@@ -109,4 +103,94 @@ namespace input {
     {
         return true;
     };
+
+    unsigned long InputSender::convertSDLKeycode(SDL_Keycode keycode) const
+    {
+        switch (keycode)
+        {
+            case SDLK_UP:
+                return XK_Up;
+
+            case SDLK_DOWN:
+                return XK_Down;
+
+            case SDLK_LEFT:
+                return XK_Left;
+
+            case SDLK_RIGHT:
+                return XK_Right;
+
+            case SDLK_F1:
+                return XK_F1;
+
+            case SDLK_F2:
+                return XK_F2;
+
+            case SDLK_F3:
+                return XK_F3;
+
+            case SDLK_F4:
+                return XK_F4;
+
+            case SDLK_F5:
+                return XK_F5;
+
+            case SDLK_F6:
+                return XK_F6;
+
+            case SDLK_F7:
+                return XK_F7;
+
+            case SDLK_F8:
+                return XK_F8;
+
+            case SDLK_F9:
+                return XK_F9;
+
+            case SDLK_F10:
+                return XK_F10;
+
+            case SDLK_F11:
+                return XK_F11;
+
+            case SDLK_F12:
+                return XK_F12;
+
+            case SDLK_DELETE:
+                return XK_Delete;
+
+            case SDLK_LCTRL:
+                return XK_Control_L;
+
+            case SDLK_RCTRL:
+                return XK_Control_R;
+
+            case SDLK_CAPSLOCK:
+                return XK_Caps_Lock;
+
+            case SDLK_LSHIFT:
+                return XK_Shift_L;
+
+            case SDLK_RSHIFT:
+                return XK_Shift_R;
+
+            case SDLK_LALT:
+                return XK_Alt_L;
+
+            case SDLK_RALT:
+                return XK_Alt_R;
+
+            case SDLK_RETURN:
+                return XK_Return;
+
+            case SDLK_ESCAPE:
+                return XK_Escape;
+
+            case SDLK_BACKSPACE:
+                return XK_BackSpace;
+
+            default:
+                return keycode;
+        }
+    }
 }

@@ -44,21 +44,30 @@ find_path(AVUTIL_INCLUDE_DIR libavutil/avutil.h REQUIRED)
 find_library(AVUTIL_LIBRARY avutil REQUIRED)
 
 # Define executables
+# Shared code
 add_library(shared STATIC
     network/socket.cpp
     network/input.cpp
     )
-target_include_directories(shared PRIVATE ${PROJECT_SOURCE_DIR})
+target_include_directories(shared PRIVATE
+    ${PROJECT_SOURCE_DIR}
+    SYSTEM ${SDL2_INCLUDE_DIRS}
+    )
 
+# syncinput
 add_executable(syncinput
     syncinput/syncinput.cpp
     )
 target_include_directories(syncinput PRIVATE
     ${PROJECT_SOURCE_DIR}
-    ${SDL2_INCLUDE_DIRS}
+    SYSTEM ${SDL2_INCLUDE_DIRS}
     )
-target_link_libraries(syncinput PRIVATE shared)
+target_link_libraries(syncinput PRIVATE
+    shared
+    # ${SDL2_LIBRARIES}
+    )
 
+# frontend
 add_executable(frontend
     frontend/frontend.cpp
     frontend/av.cpp
@@ -69,10 +78,10 @@ add_executable(frontend
 
 target_include_directories(frontend SYSTEM PRIVATE
     ${PROJECT_SOURCE_DIR}
-    ${SDL2_INCLUDE_DIRS}
-    ${AVCODEC_INCLUDE_DIR}
-    ${AVFORMAT_INCLUDE_DIR}
-    ${AVUTIL_INCLUDE_DIR}
+    SYSTEM ${SDL2_INCLUDE_DIRS}
+    SYSTEM ${AVCODEC_INCLUDE_DIR}
+    SYSTEM ${AVFORMAT_INCLUDE_DIR}
+    SYSTEM ${AVUTIL_INCLUDE_DIR}
     )
 
 target_link_libraries(frontend PRIVATE

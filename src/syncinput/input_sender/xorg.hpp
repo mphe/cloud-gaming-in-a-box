@@ -19,6 +19,7 @@ namespace input {
             void sendMouseMove(int x, int y, bool relative) const final;
             void sendMouseWheel(int x, int y) const final;
             void flush() const final;
+            unsigned long convertSDLKeycode(SDL_Keycode keycode) const final;
 
         private:
             Display* _display;

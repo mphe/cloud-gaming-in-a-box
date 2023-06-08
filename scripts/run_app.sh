@@ -85,9 +85,9 @@ main() {
     trap cleanup 0  # EXIT
 
     if [ $# -lt 2 ]; then
-        echo "Usage: run_app.sh <app path> <app window title> [command]"
+        echo "Usage: run_app.sh <app path> [app window title] [command]"
         echo -e "    <app path>: Path to the application executable."
-        echo -e "    <app window title>: Window title of the application. Used by syncinput to send input events to that window."
+        echo -e "    [app window title]: Window title of the application. Used by syncinput to send input events to that window. Unused on Linux."
         echo -e "    [command]: (Optional) Either 'stream', 'syncinput', 'proxy', or 'frontend'. Only run the specified sub system instead of the whole stack."
         return 0
     fi
@@ -95,7 +95,6 @@ main() {
     local APP_PATH="$1"
     local APP_TITLE="$2"
     COMMAND="$5"
-
     echo "Build frontend and syncinput"
     cd "$BUILD_DIR" || exit 1
     make -j
@@ -131,7 +130,9 @@ main() {
         sleep 1
         DISPLAY="$OUT_DISPLAY" xdotool search --class libreoffice windowsize %@ 100% 100%  # maximize
 
-        sleep 1
+        # Set Xvfb keyboard layout to german. This needs to be set after the application started.
+        sleep 0.5
+        DISPLAY="$OUT_DISPLAY" setxkbmap de
 
         # Presets and crf
         # https://superuser.com/questions/1556953/why-does-preset-veryfast-in-ffmpeg-generate-the-most-compressed-file-compared
@@ -149,9 +150,6 @@ main() {
             -sdp_file video.sdp \
             > video.log 2>&1 &
 
-        sleep 1
-        sed -i -r "s/$FFMPEG_VIDEO_PORT/$FRONTEND_VIDEO_PORT/" video.sdp
-
         echo "Audio stream at $AUDIO_OUT"
         ffmpeg -f pulse -fragment_size 16 -i "$SINK_NAME.monitor" \
             -preset ultrafast -tune zerolatency \
@@ -160,6 +158,7 @@ main() {
             > audio.log 2>&1 &
 
         sleep 1
+        sed -i -r "s/$FFMPEG_VIDEO_PORT/$FRONTEND_VIDEO_PORT/" video.sdp
         sed -i -r "s/$FFMPEG_AUDIO_PORT/$FRONTEND_AUDIO_PORT/" audio.sdp
     fi
 

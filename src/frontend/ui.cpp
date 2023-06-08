@@ -53,10 +53,6 @@ namespace frontend {
         // _userEvent.type = SDL_RegisterEvents(1);
         _userEvent.type = SDL_USEREVENT;
 
-        // Initially clear screen with black
-        SDL_SetRenderDrawColor(_renderer, 0, 0, 0, 255);
-        SDL_RenderClear(_renderer);
-
         return true;
     }
 

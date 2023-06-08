@@ -58,7 +58,7 @@ int main(int argc, char *argv[]) {
         switch (event.type) {
             case input::InputEventType::EventKey:
                 // cout << "key received " << event.key.key << " " << event.key.pressed << endl;
-                inputSender.sendKey(event.key.pressed, event.key.key);
+                inputSender.sendKey(event.key.pressed, inputSender.convertSDLKeycode(event.key.key));
                 break;
             case input::InputEventType::EventMouseButton:
                 // cout << "mouse received " << static_cast<int>(event.button.button) << " " << event.button.pressed << endl;

@@ -45,11 +45,11 @@ namespace input {
         });
     }
 
-    void InputTransmitter::sendKey(uint32_t key, bool pressed) const {
+    void InputTransmitter::sendKey(SDL_Keycode key, bool pressed) const {
         _send(InputEvent {
             .type = htonl(EventKey),
             .key = Key {
-                .key = htonl(key),
+                .key = static_cast<int32_t>(htonl(key)),
                 .pressed = htonl(pressed)
             }
         });
