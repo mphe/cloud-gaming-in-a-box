@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-BINARY_PATH="build"
+BUILD_DIR="build"
 FPS=60
 OUT_DISPLAY=:99
 SINK_NAME=fakecloudgame
@@ -16,11 +16,11 @@ FRONTEND_VIDEO_PORT=6004
 FRONTEND_AUDIO_PORT=7004
 # FRONTEND_VIDEO_PORT="$FFMPEG_VIDEO_PORT"
 # FRONTEND_AUDIO_PORT="$FFMPEG_AUDIO_PORT"
-SERVER_DELAY=100
+SERVER_DELAY=0
 SERVER_JITTER=0
 SERVER_LOSS_START=0.0
 SERVER_LOSS_STOP=1.0
-CLIENT_DELAY_MS=100
+CLIENT_DELAY_MS=0
 CLIENT_JITTER_MS=0
 CLIENT_LOSS_START=0.0
 CLIENT_LOSS_STOP=1.0
@@ -77,7 +77,6 @@ run_proxies() {
         ./toxiproxy-cli toxic add --type latency --attribute latency="$CLIENT_DELAY_MS" --attribute jitter="$CLIENT_JITTER_MS" input_proxy
         cd ../..
     fi
-
 }
 
 main() {
@@ -98,6 +97,11 @@ main() {
     local WIDTH="$3"
     local HEIGHT="$4"
     COMMAND="$5"
+
+    echo "Build frontend and syncinput"
+    cd "$BUILD_DIR" || exit 1
+    make -j
+    cd ..
 
     if [ -z "$COMMAND" ] || [ "$COMMAND" == "stream" ]; then
         echo "PA sink"
@@ -120,8 +124,14 @@ main() {
         # VGL_SPOILLAST=0
         # VGL_SYNC=1
 
+        # Warsow
         # VGL_ALLOWINDIRECT seems to work good for warsow at least.
-        VGL_ALLOWINDIRECT=1 VGL_REFRESHRATE="$FPS" PULSE_SINK="$SINK_NAME" DISPLAY="$OUT_DISPLAY" vglrun "$APP_PATH" &
+        # VGL_ALLOWINDIRECT=1 VGL_REFRESHRATE="$FPS" PULSE_SINK="$SINK_NAME" DISPLAY="$OUT_DISPLAY" vglrun "$APP_PATH" &
+
+        # LibreOffice Calc
+        VGL_ALLOWINDIRECT=1 VGL_REFRESHRATE="$FPS" PULSE_SINK="$SINK_NAME" DISPLAY="$OUT_DISPLAY" vglrun "$APP_PATH" --norestore --show &
+        sleep 1
+        DISPLAY="$OUT_DISPLAY" xdotool search --class libreoffice windowsize %@ 100% 100%  # maximize
 
         sleep 1
 
@@ -132,8 +142,6 @@ main() {
         # NVidia hardware acceleration
         # ffmpeg -help encoder=hevc_nvenc | less
         # -c:v h264_nvenc -preset llhq -tune hq \
-        #
-        #
         echo "Video stream at $VIDEO_OUT"
         ffmpeg -threads 0 -r "$FPS" -f x11grab -video_size "${WIDTH}x${HEIGHT}" -framerate "$FPS" -i "$OUT_DISPLAY" -draw_mouse 1 \
             -pix_fmt yuv420p \
@@ -141,7 +149,7 @@ main() {
             -an \
             -f rtp "$VIDEO_OUT" \
             -sdp_file video.sdp \
-            > /dev/null 2>&1 &
+            > video.log 2>&1 &
 
         sleep 1
         sed -i -r "s/$FFMPEG_VIDEO_PORT/$FRONTEND_VIDEO_PORT/" video.sdp
@@ -151,7 +159,7 @@ main() {
             -preset ultrafast -tune zerolatency \
             -c:a libopus -b:a 48000 \
             -payload_type 111 -f rtp -max_delay 0 "$AUDIO_OUT" -sdp_file audio.sdp \
-            > /dev/null 2>&1 &
+            > audio.log 2>&1 &
 
         sleep 1
         sed -i -r "s/$FFMPEG_AUDIO_PORT/$FRONTEND_AUDIO_PORT/" audio.sdp
@@ -159,7 +167,7 @@ main() {
 
     if [ -z "$COMMAND" ] || [ "$COMMAND" == "syncinput" ]; then
         echo "syncinput"
-        DISPLAY="$OUT_DISPLAY" "$BINARY_PATH/syncinput" "$APP_TITLE" "$SYNCINPUT_IP" "$SYNCINPUT_PORT" "$SYNCINPUT_PROTOCOL" &
+        DISPLAY="$OUT_DISPLAY" "$BUILD_DIR/syncinput" "$APP_TITLE" "$SYNCINPUT_IP" "$SYNCINPUT_PORT" "$SYNCINPUT_PROTOCOL" 2>&1 | tee syncinput.log &
         sleep 1
     fi
 
@@ -170,7 +178,7 @@ main() {
 
     if [ -z "$COMMAND" ] || [ "$COMMAND" == "frontend" ]; then
         echo "Frontend"
-        "$BINARY_PATH/frontend" video.sdp audio.sdp "$SYNCINPUT_IP" "$FRONTEND_SYNCINPUT_PORT" "$SYNCINPUT_PROTOCOL"
+        "$BUILD_DIR/frontend" video.sdp audio.sdp "$SYNCINPUT_IP" "$FRONTEND_SYNCINPUT_PORT" "$SYNCINPUT_PROTOCOL" 2>&1 | tee frontend.log
     else
         # Normally, wait until frontend quits, then kill all child processes.
         # But if the frontend was not started, wait for child processes to end.
@@ -178,4 +186,4 @@ main() {
     fi
 }
 
-main "$@"
+main "$@" 2>&1 | tee main.log
