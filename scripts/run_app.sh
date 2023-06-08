@@ -1,5 +1,7 @@
 #!/usr/bin/env bash
 BUILD_DIR="build"
+WIDTH=1920
+HEIGHT=1080
 FPS=60
 OUT_DISPLAY=:99
 SINK_NAME=fakecloudgame
@@ -82,20 +84,16 @@ run_proxies() {
 main() {
     trap cleanup 0  # EXIT
 
-    if [ $# -lt 4 ]; then
-        echo "Usage: run_app.sh <app path> <app window title> <width> <height> [command]"
+    if [ $# -lt 2 ]; then
+        echo "Usage: run_app.sh <app path> <app window title> [command]"
         echo -e "    <app path>: Path to the application executable."
         echo -e "    <app window title>: Window title of the application. Used by syncinput to send input events to that window."
-        echo -e "    <width>: Width of the virtual display."
-        echo -e "    <height>: Height of the virtual display."
         echo -e "    [command]: (Optional) Either 'stream', 'syncinput', 'proxy', or 'frontend'. Only run the specified sub system instead of the whole stack."
         return 0
     fi
 
     local APP_PATH="$1"
     local APP_TITLE="$2"
-    local WIDTH="$3"
-    local HEIGHT="$4"
     COMMAND="$5"
 
     echo "Build frontend and syncinput"
