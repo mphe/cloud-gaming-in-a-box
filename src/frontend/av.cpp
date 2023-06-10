@@ -31,7 +31,9 @@ namespace frontend {
         AVDictionary *options = nullptr;
         av_dict_set(&options, "protocol_whitelist", "file,udp,rtp", 0);
         av_dict_set(&options, "max_delay", "0", 0);
-        av_dict_set(&options, "nobuffer", "", 0);
+
+        // Set socket buffer size to 20MB to allow high quality videos without artifacts.
+        av_dict_set(&options, "buffer_size", "20971520", 0);
 
         if (avformat_open_input(&_formatCtx, inputPath, nullptr, &options) < 0) {
             cerr << "Failed to open " << inputPath << endl;
@@ -128,8 +130,7 @@ namespace frontend {
 
         AVDictionary *options = nullptr;
         av_dict_set(&options, "preset", "ultrafast", 0);
-        av_dict_set(&options, "tune", "fastdecode", 0);
-        // av_opt_set(codecContext->priv_data, "tune", "zerolatency", 0);
+        av_dict_set(&options, "tune", "zerolatency", 0);
 
         if (avcodec_open2(codecContext, codec, nullptr) < 0) {
             cerr << "Failed to open codec\n";

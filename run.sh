@@ -1,32 +1,41 @@
 #!/usr/bin/env bash
+
+# Public variables
+# Can be overridden by defining respective environment variables when running this script.
+WIDTH=${WIDTH:-1920}
+HEIGHT=${HEIGHT:-1080}
+FPS=${FPS:-60}
+CURRENT_KEYBOARD_LAYOUT="$(setxkbmap -query | grep layout | sed -r 's/.*\s(.+)$/\1/')"  # Not overridable
+XVFB_KEYBOARD_LAYOUT="${XVFB_KEYBOARD_LAYOUT:-$CURRENT_KEYBOARD_LAYOUT}"
+SYNCINPUT_PROTOCOL=${SYNCINPUT_PROTOCOL:-udp}
+
+SERVER_DELAY=${SERVER_DELAY:-0}
+SERVER_JITTER=${SERVER_JITTER:-0}
+SERVER_LOSS_START=${SERVER_LOSS_START:-0.0}
+SERVER_LOSS_STOP=${SERVER_LOSS_STOP:-1.0}
+CLIENT_DELAY_MS=${CLIENT_DELAY_MS:-0}
+CLIENT_JITTER_MS=${CLIENT_JITTER_MS:-0}
+CLIENT_LOSS_START=${CLIENT_LOSS_START:-0.0}
+CLIENT_LOSS_STOP=${CLIENT_LOSS_STOP:-1.0}
+
+# Private variables
 BUILD_DIR="build"
-WIDTH=1920
-HEIGHT=1080
-FPS=60
 OUT_DISPLAY=:99
 SINK_NAME=fakecloudgame
 SINK_ID=
 FFMPEG_VIDEO_PORT=5004
 FFMPEG_AUDIO_PORT=4004
-VIDEO_OUT="rtp://127.0.0.1:$FFMPEG_VIDEO_PORT"
+# Set socket buffer size to 20MB to allow high quality videos without artifacts.
+VIDEO_OUT="rtp://127.0.0.1:$FFMPEG_VIDEO_PORT?buffer_size=20971520"
+# VIDEO_OUT="rtp://127.0.0.1:$FFMPEG_VIDEO_PORT"
 AUDIO_OUT="rtp://127.0.0.1:$FFMPEG_AUDIO_PORT"
 SYNCINPUT_IP='127.0.0.1'
 SYNCINPUT_PORT=9090
-SYNCINPUT_PROTOCOL=udp
 FRONTEND_SYNCINPUT_PORT=9091
 FRONTEND_VIDEO_PORT=6004
 FRONTEND_AUDIO_PORT=7004
-# FRONTEND_VIDEO_PORT="$FFMPEG_VIDEO_PORT"
-# FRONTEND_AUDIO_PORT="$FFMPEG_AUDIO_PORT"
-SERVER_DELAY=0
-SERVER_JITTER=0
-SERVER_LOSS_START=0.0
-SERVER_LOSS_STOP=1.0
-CLIENT_DELAY_MS=0
-CLIENT_JITTER_MS=0
-CLIENT_LOSS_START=0.0
-CLIENT_LOSS_STOP=1.0
 COMMAND=""
+
 
 cleanup() {
     echo "Cleanup"
@@ -35,44 +44,28 @@ cleanup() {
         [ -n "$SINK_ID" ] && pactl unload-module "$SINK_ID"
     fi
 
-    if [ -z "$COMMAND" ] || [ "$COMMAND" == "proxy" ]; then
-        tmux kill-session -t fakecloudgame
-    fi
-
     [ -n "$(jobs -p)" ] && kill $(jobs -p)
 }
 
 run_proxies() {
     # UDP
     echo "UDP proxy"
-    cd udp-proxy || exit 1
-    go build
     local server_args="-d $SERVER_DELAY -j $SERVER_JITTER --loss-start $SERVER_LOSS_START --loss-stop $SERVER_LOSS_STOP"
-    tmux new-session -d -s "$SINK_NAME" ./udp-proxy -l "$FFMPEG_AUDIO_PORT" -r "$FRONTEND_AUDIO_PORT" $server_args
-    tmux new-window -t "$SINK_NAME" ./udp-proxy   -l "$FFMPEG_VIDEO_PORT" -r "$FRONTEND_VIDEO_PORT" $server_args
-    tmux new-window -t "$SINK_NAME" ./udp-proxy   -l "$((FFMPEG_AUDIO_PORT + 1))" -r "$((FRONTEND_AUDIO_PORT + 1))" $server_args
-    tmux new-window -t "$SINK_NAME" ./udp-proxy   -l "$((FFMPEG_VIDEO_PORT + 1))" -r "$((FRONTEND_VIDEO_PORT + 1))" $server_args
-    tmux set-option -t "$SINK_NAME:0" remain-on-exit failed
-    tmux set-option -t "$SINK_NAME:1" remain-on-exit failed
-    tmux set-option -t "$SINK_NAME:2" remain-on-exit failed
-    tmux set-option -t "$SINK_NAME:3" remain-on-exit failed
+    ./udp-proxy/udp-proxy -l "$FFMPEG_AUDIO_PORT" -r "$FRONTEND_AUDIO_PORT" $server_args > udp_audio_rtp.log 2>&1 &
+    ./udp-proxy/udp-proxy -l "$FFMPEG_VIDEO_PORT" -r "$FRONTEND_VIDEO_PORT" $server_args > udp_video_rtp.log 2>&1 &
+    ./udp-proxy/udp-proxy -l "$((FFMPEG_AUDIO_PORT + 1))" -r "$((FRONTEND_AUDIO_PORT + 1))" $server_args > udp_audio_rtcp.log 2>&1 &
+    ./udp-proxy/udp-proxy -l "$((FFMPEG_VIDEO_PORT + 1))" -r "$((FRONTEND_VIDEO_PORT + 1))" $server_args > udp_video_rtcp.log 2>&1 &
 
     # syncinput UDP
     if [ "$SYNCINPUT_PROTOCOL" == "udp" ]; then
-        tmux new-window -t "$SINK_NAME" ./udp-proxy -l "$FRONTEND_SYNCINPUT_PORT" -r "$SYNCINPUT_PORT" -d "$CLIENT_DELAY_MS" -j "$CLIENT_JITTER_MS" --loss-start "$CLIENT_LOSS_START" --loss-stop "$CLIENT_LOSS_STOP"
-        tmux set-option -t "$SINK_NAME:4" remain-on-exit failed
+        ./udp-proxy/udp-proxy -l "$FRONTEND_SYNCINPUT_PORT" -r "$SYNCINPUT_PORT" -d "$CLIENT_DELAY_MS" -j "$CLIENT_JITTER_MS" --loss-start "$CLIENT_LOSS_START" --loss-stop "$CLIENT_LOSS_STOP" \
+            > udp_syncinput.log 2>&1 &
     fi
-
-    tmux select-layout tiled
-    cd ..
 
     # syncinput TCP
     if [ "$SYNCINPUT_PROTOCOL" == "tcp" ]; then
         echo "TCP proxy"
-        cd toxiproxy || exit 1
-        make build
-        cd dist || exit 1
-
+        cd toxiproxy/dist || exit 1
         ./toxiproxy-server &
         sleep 1
         ./toxiproxy-cli create --listen "localhost:$FRONTEND_SYNCINPUT_PORT" --upstream "localhost:$SYNCINPUT_PORT" input_proxy
@@ -81,24 +74,63 @@ run_proxies() {
     fi
 }
 
+# args: app path + arguments
+run_app() {
+    echo "App"
+    # Flags mentioned in the arch wiki to improve virtualgl performance.
+    # https://wiki.archlinux.org/title/VirtualGL#rendering_glitches,_unusually_poor_performance,_or_application_errors
+    # VGL_ALLOWINDIRECT=1
+    # VGL_FORCEALPHA=1
+    # VGL_GLFLUSHTRIGGER=0
+    # VGL_READBACK=pbo
+    # VGL_SPOILLAST=0
+    # VGL_SYNC=1
+
+    local app_path="$(which "$1")"
+    shift 1
+    local app_dir="$(dirname "$app_path")"
+    local app_bin="./${app_path##*/}"
+
+    echo "Using additional arguments: $*"
+
+    # Some applications need to be run inside their directory
+    cd "$app_dir" || exit 1
+
+    # VGL_ALLOWINDIRECT seems to work good for warsow at least and no problems otherwise.
+    VGL_ALLOWINDIRECT=1 VGL_REFRESHRATE="$FPS" PULSE_SINK="$SINK_NAME" DISPLAY="$OUT_DISPLAY" vglrun "$app_bin" "$@" &
+
+    cd - > /dev/null || exit 1
+
+    sleep 1
+
+    # Maximize the window, as some applications don't maximize automatically in Xvfb.
+    echo "Maximizing window"
+    DISPLAY="$OUT_DISPLAY" xdotool getwindowfocus windowsize 100% 100%  # maximize
+
+    # Set Xvfb keyboard layout to german. This needs to be set after the application started.
+    echo "Setting Xvfb keyboard layout: $XVFB_KEYBOARD_LAYOUT"
+    DISPLAY="$OUT_DISPLAY" setxkbmap "$XVFB_KEYBOARD_LAYOUT"
+}
+
 main() {
     trap cleanup 0  # EXIT
 
-    if [ $# -lt 2 ]; then
-        echo "Usage: run_app.sh <app path> [app window title] [command]"
+    if [ "$1" == "-h" ] || [ "$1" == "--help" ] || [ $# -lt 2 ]; then
+        echo "Usage: run_app.sh <app path> <app window title> [command] [app args...]"
         echo -e "    <app path>: Path to the application executable."
-        echo -e "    [app window title]: Window title of the application. Used by syncinput to send input events to that window. Unused on Linux."
-        echo -e "    [command]: (Optional) Either 'stream', 'syncinput', 'proxy', or 'frontend'. Only run the specified sub system instead of the whole stack."
+        echo -e "    <app window title>: Window title of the application. Used by syncinput to send input events to that window. Unused on Linux, hence can be left empty."
+        echo -e "    [command]: (Optional) Either 'stream', 'syncinput', 'proxy', 'frontend', or empty (''). Only run the specified sub system instead of the whole stack."
+        echo -e "    [args...]: (Optional) Additional arguments passed to the application."
         return 0
     fi
 
     local APP_PATH="$1"
     local APP_TITLE="$2"
-    COMMAND="$5"
-    echo "Build frontend and syncinput"
-    cd "$BUILD_DIR" || exit 1
-    make -j
-    cd ..
+    shift 2
+
+    # Could be optional, so we need to separate this. Otherwise, it might not shift anything when exceeding the actual argument count.
+    COMMAND="$3"
+    shift 1
 
     if [ -z "$COMMAND" ] || [ "$COMMAND" == "stream" ]; then
         echo "PA sink"
@@ -111,28 +143,7 @@ main() {
         echo "Xvfb"
         Xvfb "$OUT_DISPLAY" -screen 0 "${WIDTH}x${HEIGHT}x24" &
 
-        echo "App"
-        # Flags mentioned in the arch wiki to improve virtualgl performance.
-        # https://wiki.archlinux.org/title/VirtualGL#rendering_glitches,_unusually_poor_performance,_or_application_errors
-        # VGL_ALLOWINDIRECT=1
-        # VGL_FORCEALPHA=1
-        # VGL_GLFLUSHTRIGGER=0
-        # VGL_READBACK=pbo
-        # VGL_SPOILLAST=0
-        # VGL_SYNC=1
-
-        # Warsow
-        # VGL_ALLOWINDIRECT seems to work good for warsow at least.
-        # VGL_ALLOWINDIRECT=1 VGL_REFRESHRATE="$FPS" PULSE_SINK="$SINK_NAME" DISPLAY="$OUT_DISPLAY" vglrun "$APP_PATH" &
-
-        # LibreOffice Calc
-        VGL_ALLOWINDIRECT=1 VGL_REFRESHRATE="$FPS" PULSE_SINK="$SINK_NAME" DISPLAY="$OUT_DISPLAY" vglrun "$APP_PATH" --norestore --show &
-        sleep 1
-        DISPLAY="$OUT_DISPLAY" xdotool search --class libreoffice windowsize %@ 100% 100%  # maximize
-
-        # Set Xvfb keyboard layout to german. This needs to be set after the application started.
-        sleep 0.5
-        DISPLAY="$OUT_DISPLAY" setxkbmap de
+        run_app "$APP_PATH" "$@"
 
         # Presets and crf
         # https://superuser.com/questions/1556953/why-does-preset-veryfast-in-ffmpeg-generate-the-most-compressed-file-compared
@@ -144,7 +155,7 @@ main() {
         echo "Video stream at $VIDEO_OUT"
         ffmpeg -threads 0 -r "$FPS" -f x11grab -video_size "${WIDTH}x${HEIGHT}" -framerate "$FPS" -i "$OUT_DISPLAY" -draw_mouse 1 \
             -pix_fmt yuv420p \
-            -c:v libx264 -preset ultrafast -tune zerolatency -crf 17 \
+            -c:v libx264 -preset ultrafast -tune zerolatency -crf 16 \
             -an \
             -f rtp "$VIDEO_OUT" \
             -sdp_file video.sdp \
@@ -170,7 +181,6 @@ main() {
 
     if [ -z "$COMMAND" ] || [ "$COMMAND" == "proxy" ]; then
         run_proxies
-        [ "$COMMAND" == "proxy" ] && tmux attach -t "$SINK_NAME"
     fi
 
     if [ -z "$COMMAND" ] || [ "$COMMAND" == "frontend" ]; then
