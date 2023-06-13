@@ -124,17 +124,16 @@ run_app() {
 main() {
     trap cleanup 0  # EXIT
 
-    if [ "$1" == "-h" ] || [ "$1" == "--help" ] || [ $# -lt 2 ]; then
+    if [ "$1" == "-h" ] || [ "$1" == "--help" ] || [ $# -lt 1 ]; then
         echo "Usage: run_app.sh <app path> <app window title> [command] [app args...]"
         echo -e "    <app path>: Path to the application executable."
-        echo -e "    <app window title>: Window title of the application. Used by syncinput to send input events to that window. Unused on Linux, hence can be left empty."
         echo -e "    [command]: (Optional) Either 'stream', 'syncinput', 'proxy', 'frontend', or empty (''). Only run the specified sub system instead of the whole stack."
         echo -e "    [args...]: (Optional) Additional arguments passed to the application."
         return 0
     fi
 
     local APP_PATH="$1"
-    local APP_TITLE="$2"
+    local APP_TITLE=""  # Unused on linux
     shift 2
 
     # Could be optional, so we need to separate this. Otherwise, it might not shift anything when exceeding the actual argument count.
