@@ -9,6 +9,9 @@ CURRENT_KEYBOARD_LAYOUT="$(setxkbmap -query | grep layout | sed -r 's/.*\s(.+)$/
 XVFB_KEYBOARD_LAYOUT="${XVFB_KEYBOARD_LAYOUT:-$CURRENT_KEYBOARD_LAYOUT}"
 SYNCINPUT_PROTOCOL=${SYNCINPUT_PROTOCOL:-udp}
 
+# For Steam Proton games, set this option to false. They have their own vulkan translation layer and vglrun does not support vulkan.
+USE_VIRTUALGL=${USE_VIRTUALGL:-true}
+
 SERVER_DELAY=${SERVER_DELAY:-0}
 SERVER_JITTER=${SERVER_JITTER:-0}
 SERVER_LOSS_START=${SERVER_LOSS_START:-0.0}
@@ -17,6 +20,8 @@ CLIENT_DELAY_MS=${CLIENT_DELAY_MS:-0}
 CLIENT_JITTER_MS=${CLIENT_JITTER_MS:-0}
 CLIENT_LOSS_START=${CLIENT_LOSS_START:-0.0}
 CLIENT_LOSS_STOP=${CLIENT_LOSS_STOP:-1.0}
+# VIDEO_CRF=${VIDEO_CRF:-23}
+VIDEO_BITRATE=${VIDEO_BITRATE:-25M}
 
 # Private variables
 BUILD_DIR="build"
@@ -96,8 +101,12 @@ run_app() {
     # Some applications need to be run inside their directory
     cd "$app_dir" || exit 1
 
-    # VGL_ALLOWINDIRECT seems to work good for warsow at least and no problems otherwise.
-    VGL_ALLOWINDIRECT=1 VGL_REFRESHRATE="$FPS" PULSE_SINK="$SINK_NAME" DISPLAY="$OUT_DISPLAY" vglrun "$app_bin" "$@" &
+    if "$USE_VIRTUALGL"; then
+        # VGL_ALLOWINDIRECT seems to work good for warsow and no problems otherwise.
+        VGL_ALLOWINDIRECT=1 VGL_REFRESHRATE="$FPS" PULSE_SINK="$SINK_NAME" DISPLAY="$OUT_DISPLAY" vglrun "$app_bin" "$@" &
+    else
+        PULSE_SINK="$SINK_NAME" DISPLAY="$OUT_DISPLAY" "$app_bin" "$@" &
+    fi
 
     cd - > /dev/null || exit 1
 
@@ -148,6 +157,7 @@ main() {
         # Presets and crf
         # https://superuser.com/questions/1556953/why-does-preset-veryfast-in-ffmpeg-generate-the-most-compressed-file-compared
         # https://trac.ffmpeg.org/wiki/Encode/H.264
+        # -crf "$VIDEO_CRF"
         #
         # NVidia hardware acceleration
         # ffmpeg -help encoder=hevc_nvenc | less
@@ -155,7 +165,7 @@ main() {
         echo "Video stream at $VIDEO_OUT"
         ffmpeg -threads 0 -r "$FPS" -f x11grab -video_size "${WIDTH}x${HEIGHT}" -framerate "$FPS" -i "$OUT_DISPLAY" -draw_mouse 1 \
             -pix_fmt yuv420p \
-            -c:v libx264 -preset ultrafast -tune zerolatency -crf 16 \
+            -c:v libx264 -preset ultrafast -tune zerolatency -b:v "${VIDEO_BITRATE}" \
             -an \
             -f rtp "$VIDEO_OUT" \
             -sdp_file video.sdp \

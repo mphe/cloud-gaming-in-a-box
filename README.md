@@ -3,7 +3,6 @@
 ## Setup
 
 <!-- cspell: disable -->
-
 1. `git submodule update --init --recursive`
 2. Install requirements
     - NOTE: Requires ffmpeg 5+.
@@ -17,7 +16,7 @@
         sudo pacman -S go base-devel cmake xorg-server-xvfb virtualgl ffmpeg sdl2
         ```
 3. `./build.sh`
-<!-- cspell: disable -->
+<!-- cspell: enable -->
 
 ## Usage
 
@@ -35,6 +34,21 @@ See also `./run.sh -h`.
 # Libre Office Calc
 ./run.sh localc ""
 ```
+
+## Steam Proton Games
+
+1. Edit the game's launch configuration in steam: `PROTON_DUMP_DEBUG_COMMANDS=1 PROTON_DEBUG_DIR=$HOME %command%`
+2. Run the game
+3. Steam dumps corresponding run scripts to `~/proton_<user>/` (`gdb_attach`, `gdb_run`, `run`, `winedbg`, `winedbg_run`)
+4. Use the generated `run` script as execution target for `run.sh`
+    * Optionally, remove the line with `WINEDEBUG="-all"` from `run` script.
+6. Set `USE_VIRTUALGL=false` when executing `run.sh` to disable VirtualGL.
+    * VirtualGL does not work with Vulkan
+    * Proton uses Vulkan
+    * Proton/Wine seems to work similarly to VirtualGL in terms of allowing headless rendering without
+      using software-rendering.
+7. `proton_run.sh` is wrapper for `run.sh` that sets `USE_VIRTUALGL=false`
+
 
 ## Troubleshooting
 
