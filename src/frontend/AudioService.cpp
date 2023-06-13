@@ -7,7 +7,7 @@ using std::cerr;
 
 namespace frontend {
     // Maximum number of bytes the audio queue is allowed to have before being cleared.
-    constexpr int max_queued_audio_bytes = 2048;
+    constexpr int max_queued_audio_bytes = 1024 * 3;
 
 
     AudioService::AudioService() : _audioDev(0), _running(false) {}
@@ -82,9 +82,9 @@ namespace frontend {
             // this happens exactly. To prevent this, simply clear the audio queue when it becomes too
             // full. This might not be the nicest way to fix this delay, but it works.
             if (SDL_GetQueuedAudioSize(dev) > max_queued_audio_bytes) [[unlikely]] {
+                cout << "Flushing audio queue to reduce latency: " << SDL_GetQueuedAudioSize(dev) << " Bytes\n";
                 SDL_ClearQueuedAudio(dev);
                 avcodec_flush_buffers(audio);
-                cout << "Flushing audio queue to reduce latency\n";
             }
 
             if (!stream.retrieveFrame(audio, frame))
