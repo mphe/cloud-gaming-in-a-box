@@ -13,8 +13,8 @@ SYNCINPUT_PROTOCOL=${SYNCINPUT_PROTOCOL:-udp}
 # For Steam Proton games, set this option to false. They have their own vulkan translation layer and vglrun does not support vulkan.
 USE_VIRTUALGL=${USE_VIRTUALGL:-true}
 
-SERVER_DELAY=${SERVER_DELAY:-0}
-SERVER_JITTER=${SERVER_JITTER:-0}
+SERVER_DELAY_MS=${SERVER_DELAY_MS:-0}
+SERVER_JITTER_MS=${SERVER_JITTER_MS:-0}
 SERVER_LOSS_START=${SERVER_LOSS_START:-0.0}
 SERVER_LOSS_STOP=${SERVER_LOSS_STOP:-1.0}
 CLIENT_DELAY_MS=${CLIENT_DELAY_MS:-0}
@@ -57,7 +57,7 @@ cleanup() {
 run_proxies() {
     # UDP
     echo "UDP proxy"
-    local server_args="-d $SERVER_DELAY -j $SERVER_JITTER --loss-start $SERVER_LOSS_START --loss-stop $SERVER_LOSS_STOP"
+    local server_args="-d $SERVER_DELAY_MS -j $SERVER_JITTER_MS --loss-start $SERVER_LOSS_START --loss-stop $SERVER_LOSS_STOP"
     ./udp-proxy/udp-proxy -l "$FFMPEG_AUDIO_PORT" -r "$FRONTEND_AUDIO_PORT" $server_args > "$LOG_DIR/udp_audio_rtp.log" 2>&1 &
     ./udp-proxy/udp-proxy -l "$FFMPEG_VIDEO_PORT" -r "$FRONTEND_VIDEO_PORT" $server_args > "$LOG_DIR/udp_video_rtp.log" 2>&1 &
     ./udp-proxy/udp-proxy -l "$((FFMPEG_AUDIO_PORT + 1))" -r "$((FRONTEND_AUDIO_PORT + 1))" $server_args > "$LOG_DIR/udp_audio_rtcp.log" 2>&1 &

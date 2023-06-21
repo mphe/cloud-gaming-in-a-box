@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 
-export SERVER_DELAY=200
-export SERVER_JITTER=0
+export SERVER_DELAY_MS=200
+export SERVER_JITTER_MS=0
 export SERVER_LOSS_START=0.0
 export SERVER_LOSS_STOP=1.0
 export CLIENT_DELAY_MS=200
