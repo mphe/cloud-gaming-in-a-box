@@ -20,19 +20,36 @@
 
 ## Usage
 
-Basic usage: `./run.sh <application> <application title>`.
+Basic usage: `./run.sh <application>`.
 
-See also `./run.sh -h`.
+See also `./run.sh -h` for advanced usage.
 
 
 **Example:**
 ```sh
-# On Linux, application title is unused and can be left empty.
 # Warsow
-./run.sh warsow ""
+./run.sh warsow
 
 # Libre Office Calc
-./run.sh localc ""
+./run.sh localc
+```
+
+`./scenarios/` contains wrapper scripts for various scenarios.
+`./apps/` contains some example scripts for starting applications.
+
+**Example:**
+```sh
+# Warsow with Vsync enabled
+./scenarios/vsync.sh ./run.sh warsow
+
+# Warsow with Vsync enabled and a delay scenario
+./scenarios/delay1.sh ./scenarios/vsync.sh ./run.sh warsow
+
+# Libre Office Calc
+./run.sh ./apps/localc.sh
+
+# A Hat in Time with Vsync enabled
+./run_proton.sh ./scenarios/vsync.sh ./apps/hatintime.sh
 ```
 
 ## Steam Proton Games
@@ -47,7 +64,7 @@ See also `./run.sh -h`.
     * Proton uses Vulkan
     * Proton/Wine seems to work similarly to VirtualGL in terms of allowing headless rendering without
       using software-rendering.
-7. `proton_run.sh` is wrapper for `run.sh` that sets `USE_VIRTUALGL=false`
+7. `run_proton.sh` is wrapper for `run.sh` that sets `USE_VIRTUALGL=false`
 
 
 ## Troubleshooting
