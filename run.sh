@@ -47,7 +47,7 @@ COMMAND=""
 cleanup() {
     echo "Cleanup"
 
-    if [ -z "$COMMAND" ] || [ "$COMMAND" == "stream" ]; then
+    if [ -z "$COMMAND" ] || [ "$COMMAND" == "app" ]; then
         [ -n "$SINK_ID" ] && pactl unload-module "$SINK_ID"
     fi
 
