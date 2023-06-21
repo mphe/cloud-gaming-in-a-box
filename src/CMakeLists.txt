@@ -16,6 +16,7 @@ if (UNIX)
     add_definitions(
         -Wall
         -Wextra
+        -Wpedantic
         -Wsuggest-override
         -Wsuggest-final-methods
         -Wsuggest-final-types
@@ -27,6 +28,10 @@ if (UNIX)
 elseif (MSVC)
     # Untested
     add_definitions(/W3)
+endif()
+
+if (CMAKE_CXX_COMPILER_ID STREQUAL "Clang")
+    add_definitions(-Weverything)
 endif()
 
 # Find SDL2

@@ -4,6 +4,7 @@
 # Can be overridden by defining respective environment variables when running this script.
 WIDTH=${WIDTH:-1920}
 HEIGHT=${HEIGHT:-1080}
+FRONTEND_VSYNC=${FRONTEND_VSYNC:-false}
 FPS=${FPS:-60}
 CURRENT_KEYBOARD_LAYOUT="$(setxkbmap -query | grep layout | sed -r 's/.*\s(.+)$/\1/')"  # Not overridable
 XVFB_KEYBOARD_LAYOUT="${XVFB_KEYBOARD_LAYOUT:-$CURRENT_KEYBOARD_LAYOUT}"
@@ -194,7 +195,9 @@ main() {
 
     if [ -z "$COMMAND" ] || [ "$COMMAND" == "frontend" ]; then
         echo "Frontend"
-        "$BUILD_DIR/frontend" video.sdp audio.sdp "$SYNCINPUT_IP" "$FRONTEND_SYNCINPUT_PORT" "$SYNCINPUT_PROTOCOL" 2>&1 | tee frontend.log
+        local vsync=""
+        $FRONTEND_VSYNC && vsync="vsync"
+        "$BUILD_DIR/frontend" video.sdp audio.sdp "$SYNCINPUT_IP" "$FRONTEND_SYNCINPUT_PORT" "$SYNCINPUT_PROTOCOL" "$vsync" 2>&1 | tee frontend.log
     else
         # Normally, wait until frontend quits, then kill all child processes.
         # But if the frontend was not started, wait for child processes to end.

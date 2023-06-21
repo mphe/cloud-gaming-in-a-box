@@ -1,5 +1,8 @@
 #!/usr/bin/env bash
 
+# Immediately exit on failure
+set -e
+
 cd "$(dirname "$(readlink -f "$0")")" || exit 1
 
 # TCP proxy

@@ -8,7 +8,7 @@ using std::cerr;
 
 
 void help() {
-    cout << "Usage: frontend <video filename/URL> <audio filename/URL> <syncinput IP> <syncinput port> <tcp|udp>\n";
+    cout << "Usage: frontend <video filename/URL> <audio filename/URL> <syncinput IP> <syncinput port> <tcp|udp> [vsync]\n";
     cout << "Live-streams the given video and audio streams while transmitting inputs to the given syncinput server.";
 }
 
@@ -25,7 +25,12 @@ int main(int argc, char *argv[]) {
     const char* syncinputIP = argv[3];
     const char* syncinputPort = argv[4];
     net::SocketType protocol = net::parseProtocol(argv[5]);
-    constexpr bool use_vsync = false;  // Current implementation does not work with vsync
+    bool useVsync = false;
+
+    if (argc > 6 && strcmp(argv[6], "vsync") == 0) {
+        cout << "VSync enabled\n";
+        useVsync = true;
+    }
 
     input::InputTransmitter inputTransmitter;
     if (!inputTransmitter.connect(syncinputIP, syncinputPort, protocol))
@@ -36,8 +41,8 @@ int main(int argc, char *argv[]) {
         return 1;
 
     // Initialize SDL before opening audio device.
-    frontend::UI ui;
-    if (!ui.init(video.getStream().video()->width, video.getStream().video()->height, use_vsync))
+    frontend::UI ui(inputTransmitter, video, useVsync);
+    if (!ui.init())
         return 1;
 
     frontend::AudioService audio;
@@ -49,7 +54,7 @@ int main(int argc, char *argv[]) {
     audio.start();
 
     cout << "Starting main loop\n";
-    ui.run(inputTransmitter, video);
+    ui.run();
 
     cout << "Exiting\n";
     video.join();
