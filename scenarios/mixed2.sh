@@ -1,0 +1,12 @@
+#!/usr/bin/env bash
+
+export SERVER_DELAY=180
+export SERVER_JITTER=0
+export SERVER_LOSS_START=0.003
+export SERVER_LOSS_STOP=0.9
+export CLIENT_DELAY_MS=180
+export CLIENT_JITTER_MS=0
+export CLIENT_LOSS_START=0.003
+export CLIENT_LOSS_STOP=0.9
+
+"$@"

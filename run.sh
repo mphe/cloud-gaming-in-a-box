@@ -26,6 +26,7 @@ VIDEO_BITRATE=${VIDEO_BITRATE:-25M}
 
 # Private variables
 BUILD_DIR="build"
+LOG_DIR="logs"
 OUT_DISPLAY=:99
 SINK_NAME=fakecloudgame
 SINK_ID=
@@ -57,15 +58,15 @@ run_proxies() {
     # UDP
     echo "UDP proxy"
     local server_args="-d $SERVER_DELAY -j $SERVER_JITTER --loss-start $SERVER_LOSS_START --loss-stop $SERVER_LOSS_STOP"
-    ./udp-proxy/udp-proxy -l "$FFMPEG_AUDIO_PORT" -r "$FRONTEND_AUDIO_PORT" $server_args > udp_audio_rtp.log 2>&1 &
-    ./udp-proxy/udp-proxy -l "$FFMPEG_VIDEO_PORT" -r "$FRONTEND_VIDEO_PORT" $server_args > udp_video_rtp.log 2>&1 &
-    ./udp-proxy/udp-proxy -l "$((FFMPEG_AUDIO_PORT + 1))" -r "$((FRONTEND_AUDIO_PORT + 1))" $server_args > udp_audio_rtcp.log 2>&1 &
-    ./udp-proxy/udp-proxy -l "$((FFMPEG_VIDEO_PORT + 1))" -r "$((FRONTEND_VIDEO_PORT + 1))" $server_args > udp_video_rtcp.log 2>&1 &
+    ./udp-proxy/udp-proxy -l "$FFMPEG_AUDIO_PORT" -r "$FRONTEND_AUDIO_PORT" $server_args > "$LOG_DIR/udp_audio_rtp.log" 2>&1 &
+    ./udp-proxy/udp-proxy -l "$FFMPEG_VIDEO_PORT" -r "$FRONTEND_VIDEO_PORT" $server_args > "$LOG_DIR/udp_video_rtp.log" 2>&1 &
+    ./udp-proxy/udp-proxy -l "$((FFMPEG_AUDIO_PORT + 1))" -r "$((FRONTEND_AUDIO_PORT + 1))" $server_args > "$LOG_DIR/udp_audio_rtcp.log" 2>&1 &
+    ./udp-proxy/udp-proxy -l "$((FFMPEG_VIDEO_PORT + 1))" -r "$((FRONTEND_VIDEO_PORT + 1))" $server_args > "$LOG_DIR/udp_video_rtcp.log" 2>&1 &
 
     # syncinput UDP
     if [ "$SYNCINPUT_PROTOCOL" == "udp" ]; then
         ./udp-proxy/udp-proxy -l "$FRONTEND_SYNCINPUT_PORT" -r "$SYNCINPUT_PORT" -d "$CLIENT_DELAY_MS" -j "$CLIENT_JITTER_MS" --loss-start "$CLIENT_LOSS_START" --loss-stop "$CLIENT_LOSS_STOP" \
-            > udp_syncinput.log 2>&1 &
+            > "$LOG_DIR/udp_syncinput.log" 2>&1 &
     fi
 
     # syncinput TCP
@@ -168,14 +169,14 @@ main() {
             -an \
             -f rtp "$VIDEO_OUT" \
             -sdp_file video.sdp \
-            > video.log 2>&1 &
+            > "$LOG_DIR/video.log" 2>&1 &
 
         echo "Audio stream at $AUDIO_OUT"
         ffmpeg -f pulse -fragment_size 16 -i "$SINK_NAME.monitor" \
             -preset ultrafast -tune zerolatency \
             -c:a libopus -b:a 48000 \
             -payload_type 111 -f rtp -max_delay 0 "$AUDIO_OUT" -sdp_file audio.sdp \
-            > audio.log 2>&1 &
+            > "$LOG_DIR/audio.log" 2>&1 &
 
         sleep 1
         sed -i -r "s/$FFMPEG_VIDEO_PORT/$FRONTEND_VIDEO_PORT/" video.sdp
@@ -185,7 +186,7 @@ main() {
     if [ -z "$COMMAND" ] || [ "$COMMAND" == "syncinput" ]; then
         echo "syncinput"
         local APP_TITLE=""  # Unused on linux
-        DISPLAY="$OUT_DISPLAY" "$BUILD_DIR/syncinput" "$APP_TITLE" "$SYNCINPUT_IP" "$SYNCINPUT_PORT" "$SYNCINPUT_PROTOCOL" 2>&1 | tee syncinput.log &
+        DISPLAY="$OUT_DISPLAY" "$BUILD_DIR/syncinput" "$APP_TITLE" "$SYNCINPUT_IP" "$SYNCINPUT_PORT" "$SYNCINPUT_PROTOCOL" 2>&1 | tee "$LOG_DIR/syncinput.log" &
         sleep 1
     fi
 
@@ -197,7 +198,7 @@ main() {
         echo "Frontend"
         local vsync=""
         $FRONTEND_VSYNC && vsync="vsync"
-        "$BUILD_DIR/frontend" video.sdp audio.sdp "$SYNCINPUT_IP" "$FRONTEND_SYNCINPUT_PORT" "$SYNCINPUT_PROTOCOL" "$vsync" 2>&1 | tee frontend.log
+        "$BUILD_DIR/frontend" video.sdp audio.sdp "$SYNCINPUT_IP" "$FRONTEND_SYNCINPUT_PORT" "$SYNCINPUT_PROTOCOL" "$vsync" 2>&1 | tee "$LOG_DIR/frontend.log"
     else
         # Normally, wait until frontend quits, then kill all child processes.
         # But if the frontend was not started, wait for child processes to end.
@@ -205,4 +206,6 @@ main() {
     fi
 }
 
-main "$@" 2>&1 | tee main.log
+
+mkdir -p "$LOG_DIR"
+main "$@" 2>&1 | tee "$LOG_DIR/main.log"
