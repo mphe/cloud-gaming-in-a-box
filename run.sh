@@ -126,22 +126,19 @@ main() {
     trap cleanup 0  # EXIT
 
     if [ "$1" == "-h" ] || [ "$1" == "--help" ] || [ $# -lt 1 ]; then
-        echo "Usage: run_app.sh <app path> <app window title> [command] [app args...]"
+        echo "Usage: run_app.sh <app path> [command] [app args...]"
         echo -e "    <app path>: Path to the application executable."
-        echo -e "    [command]: (Optional) Either 'stream', 'syncinput', 'proxy', 'frontend', or empty (''). Only run the specified sub system instead of the whole stack."
+        echo -e "    [command]: (Optional) Either 'app', 'stream', 'syncinput', 'proxy', 'frontend', or empty (''). Only run the specified sub system instead of the whole stack."
         echo -e "    [args...]: (Optional) Additional arguments passed to the application."
         return 0
     fi
 
     local APP_PATH="$1"
-    local APP_TITLE=""  # Unused on linux
-    shift 2
+    COMMAND="$2"
+    shift 1  # Shift app path
+    shift 1  # Command is optional, so we need a separate shift, otherwise, it might not shift anything when exceeding the actual argument count.
 
-    # Could be optional, so we need to separate this. Otherwise, it might not shift anything when exceeding the actual argument count.
-    COMMAND="$3"
-    shift 1
-
-    if [ -z "$COMMAND" ] || [ "$COMMAND" == "stream" ]; then
+    if [ -z "$COMMAND" ] || [ "$COMMAND" == "app" ]; then
         echo "PA sink"
         # Create a new pulseaudio sink for the application to prevent playing audio directly to speakers.
         # Check if the sink already exists and remove it to ensure a fresh non-bugged sink
@@ -153,7 +150,9 @@ main() {
         Xvfb "$OUT_DISPLAY" -screen 0 "${WIDTH}x${HEIGHT}x24" &
 
         run_app "$APP_PATH" "$@"
+    fi
 
+    if [ -z "$COMMAND" ] || [ "$COMMAND" == "stream" ]; then
         # Presets and crf
         # https://superuser.com/questions/1556953/why-does-preset-veryfast-in-ffmpeg-generate-the-most-compressed-file-compared
         # https://trac.ffmpeg.org/wiki/Encode/H.264
@@ -185,6 +184,7 @@ main() {
 
     if [ -z "$COMMAND" ] || [ "$COMMAND" == "syncinput" ]; then
         echo "syncinput"
+        local APP_TITLE=""  # Unused on linux
         DISPLAY="$OUT_DISPLAY" "$BUILD_DIR/syncinput" "$APP_TITLE" "$SYNCINPUT_IP" "$SYNCINPUT_PORT" "$SYNCINPUT_PROTOCOL" 2>&1 | tee syncinput.log &
         sleep 1
     fi
