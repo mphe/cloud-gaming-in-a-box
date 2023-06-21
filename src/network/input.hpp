@@ -1,7 +1,7 @@
 #ifndef INPUT_PROTOCOL_HPP
 #define INPUT_PROTOCOL_HPP
 
-#include <SDL_keycode.h>
+#include <SDL_keyboard.h>
 #include <cstdint>
 #include "network/socket.hpp"
 
@@ -53,7 +53,7 @@ namespace input {
             void sendMouseButton(uint8_t button, bool pressed) const;
             void sendMouseMotion(int32_t x, int32_t y) const;
             void sendMouseWheel(int32_t x, int32_t y) const;
-            void sendKey(SDL_Keycode key, bool pressed) const;
+            void sendKey(const SDL_Keysym& key, bool pressed) const;
             bool recv(InputEvent* event) const;
 
         private:

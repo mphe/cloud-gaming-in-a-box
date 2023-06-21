@@ -45,11 +45,14 @@ namespace input {
         });
     }
 
-    void InputTransmitter::sendKey(SDL_Keycode key, bool pressed) const {
+    void InputTransmitter::sendKey(const SDL_Keysym& key, bool pressed) const {
+        // Apparently this key does not produce a meaningful keysym, so we handle it manually.
+        auto sym = (key.scancode == SDL_SCANCODE_GRAVE) ? SDLK_BACKQUOTE : key.sym;
+
         _send(InputEvent {
             .type = htonl(EventKey),
             .key = Key {
-                .key = static_cast<int32_t>(htonl(key)),
+                .key = static_cast<int32_t>(htonl(sym)),
                 .pressed = htonl(pressed)
             }
         });

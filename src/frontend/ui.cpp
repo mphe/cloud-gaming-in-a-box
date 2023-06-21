@@ -181,11 +181,11 @@ namespace frontend {
         switch (event.type) {
             case SDL_KEYDOWN:
                 if (!event.key.repeat)
-                    _transmitter.sendKey(event.key.keysym.sym, true);
+                    _transmitter.sendKey(event.key.keysym, true);
                 break;
 
             case SDL_KEYUP:
-                _transmitter.sendKey(event.key.keysym.sym, false);
+                _transmitter.sendKey(event.key.keysym, false);
                 break;
 
             case SDL_MOUSEBUTTONDOWN:

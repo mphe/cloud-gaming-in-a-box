@@ -111,6 +111,9 @@ namespace input {
             case SDLK_TAB:
                 return XK_Tab;
 
+            case SDLK_BACKQUOTE:
+                return XK_dead_circumflex;
+
             case SDLK_UP:
                 return XK_Up;
 
@@ -181,7 +184,7 @@ namespace input {
                 return XK_Alt_L;
 
             case SDLK_RALT:
-                return XK_Alt_R;
+                return XK_ISO_Level3_Shift;
 
             case SDLK_RETURN:
                 return XK_Return;
