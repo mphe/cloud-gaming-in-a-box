@@ -108,6 +108,9 @@ namespace input {
     {
         switch (keycode)
         {
+            case SDLK_TAB:
+                return XK_Tab;
+
             case SDLK_UP:
                 return XK_Up;
 
