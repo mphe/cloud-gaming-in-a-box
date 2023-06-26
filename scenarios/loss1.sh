@@ -1,11 +1,9 @@
 #!/usr/bin/env bash
 
-export SERVER_DELAY_MS=0
-export SERVER_JITTER_MS=0
+# 0.1% Packet loss
+
 export SERVER_LOSS_START=0.001
 export SERVER_LOSS_STOP=0.999
-export CLIENT_DELAY_MS=0
-export CLIENT_JITTER_MS=0
 export CLIENT_LOSS_START=0.001
 export CLIENT_LOSS_STOP=0.999
 

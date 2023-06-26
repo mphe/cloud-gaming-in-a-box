@@ -1,12 +1,8 @@
 #!/usr/bin/env bash
 
+# 200ms RTT
+
 export SERVER_DELAY_MS=100
-export SERVER_JITTER_MS=0
-export SERVER_LOSS_START=0.0
-export SERVER_LOSS_STOP=1.0
 export CLIENT_DELAY_MS=100
-export CLIENT_JITTER_MS=0
-export CLIENT_LOSS_START=0.0
-export CLIENT_LOSS_STOP=1.0
 
 "$@"
