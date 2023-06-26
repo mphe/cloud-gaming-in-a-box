@@ -160,6 +160,7 @@ main() {
         # https://superuser.com/questions/1556953/why-does-preset-veryfast-in-ffmpeg-generate-the-most-compressed-file-compared
         # https://trac.ffmpeg.org/wiki/Encode/H.264
         # -crf "$VIDEO_CRF"
+	# -g 30 \
         #
         # NVidia hardware acceleration
         # ffmpeg -help encoder=hevc_nvenc | less
