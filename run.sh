@@ -45,16 +45,38 @@ COMMAND=""
 
 
 cleanup() {
+    local err=$?
     echo "Cleanup"
 
-    if [ -z "$COMMAND" ] || [ "$COMMAND" == "app" ]; then
+    # Remove traps, because it might get called multiple times
+    trap - EXIT INT HUP TERM QUIT PIPE
+
+    if has_command "app"; then
         [ -n "$SINK_ID" ] && pactl unload-module "$SINK_ID"
     fi
 
     [ -n "$(jobs -p)" ] && kill $(jobs -p)
+
+    exit $err
 }
 
+
+# arg1: command to check
+has_command() {
+    [[ -z "$COMMAND" ]] && return 0
+    [[ ",$COMMAND," =~ .*,"$1",.* ]]
+}
+
+
 run_proxies() {
+    # Proxies sometimes remained after exit. This should be fixed, but just in case...
+    if pgrep udp-proxy; then
+        echo "------------------------------------"
+        echo "UDP PROXY STILL RUNNING DURING START"
+        echo "------------------------------------"
+        killall udp-proxy
+    fi
+
     # UDP
     echo "UDP proxy"
     local server_args="-d $SERVER_DELAY_MS -j $SERVER_JITTER_MS --loss-start $SERVER_LOSS_START --loss-stop $SERVER_LOSS_STOP"
@@ -120,18 +142,18 @@ run_app() {
     echo "Maximizing window"
     DISPLAY="$OUT_DISPLAY" xdotool getwindowfocus windowsize 100% 100%  # maximize
 
-    # Set Xvfb keyboard layout to german. This needs to be set after the application started.
+    # Set Xvfb keyboard layout. This needs to be set after the application started.
     echo "Setting Xvfb keyboard layout: $XVFB_KEYBOARD_LAYOUT"
     DISPLAY="$OUT_DISPLAY" setxkbmap "$XVFB_KEYBOARD_LAYOUT"
 }
 
 main() {
-    trap cleanup 0  # EXIT
+    trap cleanup EXIT INT HUP TERM QUIT PIPE
 
     if [ "$1" == "-h" ] || [ "$1" == "--help" ] || [ $# -lt 1 ]; then
         echo "Usage: run_app.sh <app path> [command] [app args...]"
         echo -e "    <app path>: Path to the application executable."
-        echo -e "    [command]: (Optional) Either 'app', 'stream', 'syncinput', 'proxy', 'frontend', or empty (''). Only run the specified sub system instead of the whole stack."
+        echo -e "    [subsystems]: (Optional) Comma separated (no space) list of subsystems to start. Can be 'app', 'stream', 'syncinput', 'proxy', 'frontend', or empty ('')."
         echo -e "    [args...]: (Optional) Additional arguments passed to the application."
         return 0
     fi
@@ -141,7 +163,7 @@ main() {
     shift 1  # Shift app path
     shift 1  # Command is optional, so we need a separate shift, otherwise, it might not shift anything when exceeding the actual argument count.
 
-    if [ -z "$COMMAND" ] || [ "$COMMAND" == "app" ]; then
+    if has_command "app"; then
         echo "PA sink"
         # Create a new pulseaudio sink for the application to prevent playing audio directly to speakers.
         # Check if the sink already exists and remove it to ensure a fresh non-bugged sink
@@ -155,7 +177,7 @@ main() {
         run_app "$APP_PATH" "$@"
     fi
 
-    if [ -z "$COMMAND" ] || [ "$COMMAND" == "stream" ]; then
+    if has_command "stream"; then
         # Presets and crf
         # https://superuser.com/questions/1556953/why-does-preset-veryfast-in-ffmpeg-generate-the-most-compressed-file-compared
         # https://trac.ffmpeg.org/wiki/Encode/H.264
@@ -186,18 +208,18 @@ main() {
         sed -i -r "s/$FFMPEG_AUDIO_PORT/$FRONTEND_AUDIO_PORT/" audio.sdp
     fi
 
-    if [ -z "$COMMAND" ] || [ "$COMMAND" == "syncinput" ]; then
+    if has_command "syncinput"; then
         echo "syncinput"
-        local APP_TITLE=""  # Unused on linux
-        DISPLAY="$OUT_DISPLAY" "$BUILD_DIR/syncinput" "$APP_TITLE" "$SYNCINPUT_IP" "$SYNCINPUT_PORT" "$SYNCINPUT_PROTOCOL" 2>&1 | tee "$LOG_DIR/syncinput.log" &
+        local app_title=""  # Unused on linux
+        DISPLAY="$OUT_DISPLAY" "$BUILD_DIR/syncinput" "$app_title" "$SYNCINPUT_IP" "$SYNCINPUT_PORT" "$SYNCINPUT_PROTOCOL" 2>&1 | tee "$LOG_DIR/syncinput.log" &
         sleep 1
     fi
 
-    if [ -z "$COMMAND" ] || [ "$COMMAND" == "proxy" ]; then
+    if has_command "proxy"; then
         run_proxies
     fi
 
-    if [ -z "$COMMAND" ] || [ "$COMMAND" == "frontend" ]; then
+    if has_command "frontend"; then
         echo "Frontend"
         local vsync=""
         $FRONTEND_VSYNC && vsync="vsync"
@@ -207,8 +229,11 @@ main() {
         # But if the frontend was not started, wait for child processes to end.
         wait
     fi
+
+    cleanup
 }
 
 
 mkdir -p "$LOG_DIR"
-main "$@" 2>&1 | tee "$LOG_DIR/main.log"
+# Make sure tee doesn't exit until main is finished
+main "$@" 2>&1 | (trap "" INT; tee "$LOG_DIR/main_$(date +%s).log")
