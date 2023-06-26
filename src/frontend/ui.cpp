@@ -109,8 +109,8 @@ namespace frontend {
         const auto maxWaitTime = std::chrono::milliseconds(500);
 
         // Try adaptive Vsync and fallback to regular vsync
-        if (SDL_GL_SetSwapInterval(-1) == -1)
-            SDL_GL_SetSwapInterval(1);
+        // if (SDL_GL_SetSwapInterval(-1) == -1)
+        //    SDL_GL_SetSwapInterval(1);
 
         std::unique_lock lk(ui._frameMu);
         while (ui._running) {
