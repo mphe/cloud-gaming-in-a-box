@@ -8,7 +8,7 @@ FRONTEND_VSYNC=${FRONTEND_VSYNC:-false}
 FPS=${FPS:-60}
 CURRENT_KEYBOARD_LAYOUT="$(setxkbmap -query | grep layout | sed -r 's/.*\s(.+)$/\1/')"  # Not overridable
 XVFB_KEYBOARD_LAYOUT="${XVFB_KEYBOARD_LAYOUT:-$CURRENT_KEYBOARD_LAYOUT}"
-SYNCINPUT_PROTOCOL=${SYNCINPUT_PROTOCOL:-udp}
+SYNCINPUT_PROTOCOL=${SYNCINPUT_PROTOCOL:-tcp}
 
 # For Steam Proton games, set this option to false. They have their own vulkan translation layer and vglrun does not support vulkan.
 USE_VIRTUALGL=${USE_VIRTUALGL:-true}
@@ -25,8 +25,8 @@ CLIENT_LOSS_STOP=${CLIENT_LOSS_STOP:-1.0}
 VIDEO_BITRATE=${VIDEO_BITRATE:-25M}
 
 # Private variables
-BUILD_DIR="build"
-LOG_DIR="logs"
+BUILD_DIR="$PWD/build"
+LOG_DIR="$PWD/logs"
 OUT_DISPLAY=:99
 SINK_NAME=fakecloudgame
 SINK_ID=
@@ -63,20 +63,22 @@ run_proxies() {
     ./udp-proxy/udp-proxy -l "$((FFMPEG_AUDIO_PORT + 1))" -r "$((FRONTEND_AUDIO_PORT + 1))" $server_args > "$LOG_DIR/udp_audio_rtcp.log" 2>&1 &
     ./udp-proxy/udp-proxy -l "$((FFMPEG_VIDEO_PORT + 1))" -r "$((FRONTEND_VIDEO_PORT + 1))" $server_args > "$LOG_DIR/udp_video_rtcp.log" 2>&1 &
 
-    # syncinput UDP
+    # syncinput
     if [ "$SYNCINPUT_PROTOCOL" == "udp" ]; then
         ./udp-proxy/udp-proxy -l "$FRONTEND_SYNCINPUT_PORT" -r "$SYNCINPUT_PORT" -d "$CLIENT_DELAY_MS" -j "$CLIENT_JITTER_MS" --loss-start "$CLIENT_LOSS_START" --loss-stop "$CLIENT_LOSS_STOP" \
             > "$LOG_DIR/udp_syncinput.log" 2>&1 &
-    fi
-
-    # syncinput TCP
-    if [ "$SYNCINPUT_PROTOCOL" == "tcp" ]; then
+    elif [ "$SYNCINPUT_PROTOCOL" == "tcp" ]; then
         echo "TCP proxy"
         cd toxiproxy/dist || exit 1
-        ./toxiproxy-server &
+        ./toxiproxy-server 2>&1 | tee "$LOG_DIR/toxiproxy_server.log" &
         sleep 1
+
+        (
         ./toxiproxy-cli create --listen "localhost:$FRONTEND_SYNCINPUT_PORT" --upstream "localhost:$SYNCINPUT_PORT" input_proxy
-        ./toxiproxy-cli toxic add --type latency --attribute latency="$CLIENT_DELAY_MS" --attribute jitter="$CLIENT_JITTER_MS" input_proxy
+        ./toxiproxy-cli toxic add --downstream --type latency --attribute latency="$CLIENT_DELAY_MS" --attribute jitter="$CLIENT_JITTER_MS" input_proxy
+        ./toxiproxy-cli toxic add --upstream --type latency --attribute latency="$CLIENT_DELAY_MS" --attribute jitter="$CLIENT_JITTER_MS" input_proxy
+        )  2>&1 | tee "$LOG_DIR/toxiproxy_cli.log"
+
         cd ../..
     fi
 }
