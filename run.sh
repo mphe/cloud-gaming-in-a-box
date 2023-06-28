@@ -49,7 +49,7 @@ cleanup() {
     echo "Cleanup"
 
     # Remove traps, because it might get called multiple times
-    trap - EXIT INT HUP TERM QUIT PIPE
+    trap - EXIT INT HUP TERM QUIT
 
     if has_command "app"; then
         [ -n "$SINK_ID" ] && pactl unload-module "$SINK_ID"
@@ -148,7 +148,7 @@ run_app() {
 }
 
 main() {
-    trap cleanup EXIT INT HUP TERM QUIT PIPE
+    trap cleanup EXIT INT HUP TERM QUIT
 
     if [ "$1" == "-h" ] || [ "$1" == "--help" ] || [ $# -lt 1 ]; then
         echo "Usage: run_app.sh <app path> [command] [app args...]"
@@ -235,5 +235,6 @@ main() {
 
 
 mkdir -p "$LOG_DIR"
+COMMAND="$2"
 # Make sure tee doesn't exit until main is finished
-main "$@" 2>&1 | (trap "" INT; tee "$LOG_DIR/main_$(date +%s).log")
+main "$@" 2>&1 | (trap "" INT; tee "$LOG_DIR/main_$COMMAND.log")
