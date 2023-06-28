@@ -14,6 +14,10 @@ using std::cout;
 using std::cerr;
 using std::endl;
 
+void cerrWithErrno(const char* text) {
+    cerr << text << errno << " " << std::strerror(errno) << endl;
+}
+
 namespace input {
     void InputTransmitter::sendMouseButton(uint8_t button, bool pressed) const {
         _send(InputEvent {
@@ -60,8 +64,7 @@ namespace input {
 
     void InputTransmitter::_send(const InputEvent& event) const {
         if (_socket.send(reinterpret_cast<const char *>(&event), sizeof(InputEvent)) == -1)
-            cerr << "An error occurred during send: " << errno << " " << std::strerror(errno) << endl;
-
+            cerrWithErrno("An error occurred during send: ");
     }
 
     bool InputTransmitter::recv(InputEvent* event) const {
@@ -72,7 +75,7 @@ namespace input {
             return false;
         }
         else if (nrecv == -1) {
-            cerr << "An error occurred during recv: " << errno << " " << std::strerror(errno) << endl;
+            cerrWithErrno("An error occurred during recv: ");
             return false;
         }
 
@@ -126,7 +129,7 @@ namespace input {
 
         net::Socket listener;
         if (!listener.listen(type, host, port)) {
-            cerr << "Failed to start listener\n";
+            cerrWithErrno("Failed to start listener: ");
             return false;
         }
 
