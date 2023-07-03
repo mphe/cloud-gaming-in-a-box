@@ -56,15 +56,15 @@ BACKEND_COMMAND = [ "cfg/proton.sh", "./run.sh", "apps/hatintime.sh", "app,strea
 FRONTEND_COMMAND = [ f"DISPLAY={DISPLAY}", "cfg/vsync.sh", "./run.sh", "", "proxy,syncinput,frontend", ]
 
 
-def ask_rating() -> int:
+def ask_rating(prompt: str = "Rating", min_value: int = 1, max_value: int = 5) -> int:
     while True:
-        rating = input("Rating (1-5): ")
+        rating = input(f"{prompt} ({min_value}-{max_value}): ")
         try:
             value = int(rating)
         except:  # pylint: disable=bare-except
             continue
 
-        if value >= 1 and value <= 5:
+        if value >= min_value and value <= max_value:
             return value
 
 
@@ -201,6 +201,9 @@ def main() -> int:
     random.seed(userid)
     print("User ID/Seed:", userid)
 
+    user_skill = ask_rating("Rate self-perceived skill level", 1, 3)
+    user_playtime = ask_rating("Rate how much time spent on gaming", 1, 3)
+
     scenarios = get_scenarios()
     print("Scenarios:", ", ".join(map(str, scenarios)))
 
@@ -212,7 +215,7 @@ def main() -> int:
 
     with open(f"results_{userid}.csv", "a" if append_mode else "w") as f:
         if not append_mode:
-            f.write("userid,scenario,rating\n")
+            f.write("userid,scenario,rating,skill,playtime\n")
 
         with run_subprocess([ "env", *BACKEND_COMMAND ]) as p_backend:
             try:
@@ -227,7 +230,7 @@ def main() -> int:
                     run_scenario(scenario, SCENARIO_DURATION_SECONDS)
 
                     rating = ask_rating_window()
-                    f.write(f"{userid},{scenario},{rating}\n")
+                    f.write(f"{userid},{scenario},{rating},{user_skill},{user_playtime}\n")
                     # input("Press enter to continue")
 
                 print("Done")
