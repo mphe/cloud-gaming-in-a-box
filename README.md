@@ -13,7 +13,7 @@
         In addition, download and install virtualgl. See <https://virtualgl.org/vgldoc/2_1_3/#hd004001>.
     - Arch
         ```sh
-        sudo pacman -S go base-devel cmake xorg-server-xvfb virtualgl ffmpeg sdl2
+        sudo pacman -S go base-devel cmake xorg-server-xvfb virtualgl ffmpeg sdl2 xdotool
         ```
 3. `./build.sh`
 <!-- cspell: enable -->

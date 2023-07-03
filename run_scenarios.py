@@ -43,16 +43,17 @@ PREPARE_DURATION_SECONDS = 60 * 5
 SCENARIO_DURATION_SECONDS = 60 * 1
 SCENARIO_BASELINE = Scenario("B")
 SCENARIOS = [
-    # Scenario("D1", rtt_ms=50),
-    # Scenario("D2", rtt_ms=100),
-    # Scenario("D3", rtt_ms=200),
+    Scenario("D1", rtt_ms=50),
+    Scenario("D2", rtt_ms=100),
+    Scenario("D3", rtt_ms=200),
     Scenario("L1", loss_start=0.0005, loss_stop=0.9995),
     Scenario("L2", loss_start=0.001, loss_stop=0.999),
-    # Scenario("M1", rtt_ms=50, loss_start=0.001, loss_stop=0.999),
-    # Scenario("M2", rtt_ms=100, loss_start=0.001, loss_stop=0.999),
-    # Scenario("M3", rtt_ms=200, loss_start=0.001, loss_stop=0.999),
+    Scenario("L3", loss_start=0.01, loss_stop=0.99),
+    Scenario("M1", rtt_ms=50, loss_start=0.001, loss_stop=0.999),
+    Scenario("M2", rtt_ms=100, loss_start=0.001, loss_stop=0.999),
+    Scenario("M3", rtt_ms=200, loss_start=0.001, loss_stop=0.999),
 ]
-BACKEND_COMMAND = [ "cfg/proton.sh", "./run.sh", "apps/hatintime.sh", "app,stream", ]
+BACKEND_COMMAND = [ f"DISPLAY={DISPLAY}", "cfg/proton.sh", "./run.sh", "apps/hatintime.sh", "app,stream", ]
 FRONTEND_COMMAND = [ f"DISPLAY={DISPLAY}", "cfg/vsync.sh", "./run.sh", "", "proxy,syncinput,frontend", ]
 
 
