@@ -9,8 +9,8 @@ using std::cerr;
 
 namespace frontend {
     UI::UI(const input::InputTransmitter& transmitter, VideoService& video, bool vsync) :
-        _window(nullptr), _renderer(nullptr), _frame(nullptr), _transmitter(transmitter),
-        _video(video), _running(false), _vsync(vsync)
+        _mouseSensitivity(1.0), _window(nullptr), _renderer(nullptr), _frame(nullptr),
+        _transmitter(transmitter), _video(video), _running(false), _vsync(vsync)
     {}
 
     UI::~UI() {
@@ -197,7 +197,9 @@ namespace frontend {
                 break;
 
             case SDL_MOUSEMOTION:
-                _transmitter.sendMouseMotion(event.motion.xrel, event.motion.yrel);
+                _transmitter.sendMouseMotion(
+                        std::round(event.motion.xrel * _mouseSensitivity),
+                        std::round(event.motion.yrel * _mouseSensitivity));
                 break;
 
             case SDL_MOUSEWHEEL:
@@ -211,5 +213,9 @@ namespace frontend {
             default:
                 break;
         }
+    }
+
+    void UI::setMouseSensitivity(float sens) {
+        _mouseSensitivity = sens;
     }
 } // namespace frontend

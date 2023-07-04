@@ -3,7 +3,7 @@
 #include <mutex>
 #include "network/input.hpp"
 
-// Wait for the next frame and render it immediately. Uses adaptive vsync when available.
+// Wait for the next frame and render it immediately.
 // Feels much smoother than VSYNC_METHOD_PREDICT but slightly less responsive.
 #define VSYNC_METHOD_ON_FRAME 0
 
@@ -32,7 +32,9 @@ namespace frontend {
             // (Thread-safe) Notify the UI that a new frame is ready to be displayed
             void notifyTextureUpdate();
 
-        private:
+            void setMouseSensitivity(float sens);
+
+          private:
             // Run like a regular game loop: fetch inputs -> process -> render (wait for vsync).
             // High latency, no tearing.
             void _runSequential();
@@ -51,6 +53,7 @@ namespace frontend {
             static void _renderThread(SDL_GLContext gl, UI& ui);
 
           private:
+            float _mouseSensitivity;
             SDL_Window* _window;
             SDL_Renderer* _renderer;
             SDL_Texture* _frame;

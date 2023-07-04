@@ -8,7 +8,7 @@ using std::cerr;
 
 
 void help() {
-    cout << "Usage: frontend <video filename/URL> <audio filename/URL> <syncinput IP> <syncinput port> <tcp|udp> [vsync]\n";
+    cout << "Usage: frontend <video filename/URL> <audio filename/URL> <syncinput IP> <syncinput port> <tcp|udp> [mouse-sensitivity] [vsync]\n";
     cout << "Live-streams the given video and audio streams while transmitting inputs to the given syncinput server.";
 }
 
@@ -24,12 +24,17 @@ int main(int argc, char *argv[]) {
     const char* audioURL = argv[2];
     const char* syncinputIP = argv[3];
     const char* syncinputPort = argv[4];
+    float mouseSensitivity = 1.0;
     net::SocketType protocol = net::parseProtocol(argv[5]);
     bool useVsync = false;
 
-    if (argc > 6 && strcmp(argv[6], "vsync") == 0) {
-        cout << "VSync enabled\n";
-        useVsync = true;
+    if (argc > 6) {
+        mouseSensitivity = std::atof(argv[6]);
+
+        if (argc > 7 && strcmp(argv[7], "vsync") == 0) {
+            cout << "VSync enabled\n";
+            useVsync = true;
+        }
     }
 
     input::InputTransmitter inputTransmitter;
@@ -44,6 +49,8 @@ int main(int argc, char *argv[]) {
     frontend::UI ui(inputTransmitter, video, useVsync);
     if (!ui.init())
         return 1;
+
+    ui.setMouseSensitivity(mouseSensitivity);
 
     frontend::AudioService audio;
     if (!audio.open(audioURL))

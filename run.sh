@@ -9,6 +9,7 @@ FPS=${FPS:-60}
 CURRENT_KEYBOARD_LAYOUT="$(setxkbmap -query | grep layout | sed -r 's/.*\s(.+)$/\1/')"  # Not overridable
 XVFB_KEYBOARD_LAYOUT="${XVFB_KEYBOARD_LAYOUT:-$CURRENT_KEYBOARD_LAYOUT}"
 SYNCINPUT_PROTOCOL=${SYNCINPUT_PROTOCOL:-tcp}
+MOUSE_SENSITIVITY=${MOUSE_SENSITIVITY:-1.0}
 
 # For Steam Proton games, set this option to false. They have their own vulkan translation layer and vglrun does not support vulkan.
 USE_VIRTUALGL=${USE_VIRTUALGL:-true}
@@ -225,7 +226,7 @@ main() {
         echo "Frontend"
         local vsync=""
         $FRONTEND_VSYNC && vsync="vsync"
-        "$BUILD_DIR/frontend" video.sdp audio.sdp "$SYNCINPUT_IP" "$FRONTEND_SYNCINPUT_PORT" "$SYNCINPUT_PROTOCOL" "$vsync" 2>&1 | tee "$LOG_DIR/frontend.log"
+        "$BUILD_DIR/frontend" video.sdp audio.sdp "$SYNCINPUT_IP" "$FRONTEND_SYNCINPUT_PORT" "$SYNCINPUT_PROTOCOL" "$MOUSE_SENSITIVITY" "$vsync" 2>&1 | tee "$LOG_DIR/frontend.log"
     else
         # Normally, wait until frontend quits, then kill all child processes.
         # But if the frontend was not started, wait for child processes to end.
