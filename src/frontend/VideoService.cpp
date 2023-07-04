@@ -1,8 +1,9 @@
 #include "VideoService.hpp"
 #include "ui.hpp"
+#include <iostream>
 
 namespace frontend {
-    VideoService::VideoService() : _running(false) {}
+    VideoService::VideoService() : _avgFrametimeUs(0.0), _running(false) {}
 
     bool VideoService::open(const char* url) {
         _stream.format()->max_analyze_duration = INT64_MAX - 1;
@@ -35,11 +36,19 @@ namespace frontend {
 
 
     void VideoService::_process(VideoService* self, UI& ui) {
+        using std::chrono::high_resolution_clock;
+        using std::chrono::duration_cast;
+        using std::chrono::microseconds;
+
         AVStream& stream = self->_stream;
         auto video = stream.video();
         auto frame = self->_frame.get();
 
+        size_t nFrames = 0;
+
         while (self->_running) {
+            auto begin = high_resolution_clock::now();
+
             if (!stream.readPacket())
                 break;
 
@@ -50,8 +59,17 @@ namespace frontend {
                     break;
             }
 
+            auto end = high_resolution_clock::now();
+            auto deltaUs = duration_cast<microseconds>(end - begin).count();
+            nFrames++;
+            self->_avgFrametimeUs += (deltaUs - self->_avgFrametimeUs) / nFrames;
+
             // Notify the main loop to refresh
             ui.notifyTextureUpdate();
         }
     }
-}
+
+    float VideoService::getAvgFrametime() const {
+        return _avgFrametimeUs;
+    }
+} // namespace frontend

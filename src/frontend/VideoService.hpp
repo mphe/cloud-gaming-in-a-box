@@ -20,7 +20,9 @@ namespace frontend {
             // (Thread-safe) Update SDL texture with the contents of the current video frame.
             void updateSDLTexture(SDL_Texture* tex) const;
 
-        private:
+            float getAvgFrametime() const;
+
+          private:
             static void _process(VideoService* self, UI& ui);
 
         private:
@@ -28,6 +30,7 @@ namespace frontend {
             std::thread _thread;
             mutable std::mutex _frameMutex;
             AVStream _stream;
+            float _avgFrametimeUs;
             bool _running;
     };
 }
