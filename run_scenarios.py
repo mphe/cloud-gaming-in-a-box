@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 
+from functools import reduce
 import argparse
 import os
 import sys
@@ -11,6 +12,16 @@ from dataclasses import dataclass
 import random
 from typing import List, Tuple
 import tkinter
+import tkinter.simpledialog
+
+
+@dataclass(frozen=True)
+class UserSurvey:
+    age: int
+    gender: int
+    time_spent: int
+    genres: int
+    devices: int
 
 
 @dataclass(frozen=True)
@@ -57,18 +68,6 @@ BACKEND_COMMAND = [ f"DISPLAY={DISPLAY}", "cfg/proton.sh", "./run.sh", "apps/hat
 FRONTEND_COMMAND = [ f"DISPLAY={DISPLAY}", "cfg/vsync.sh", "./run.sh", "", "proxy,syncinput,frontend", ]
 
 
-def ask_rating(prompt: str = "Rating", min_value: int = 1, max_value: int = 5) -> int:
-    while True:
-        rating = input(f"{prompt} ({min_value}-{max_value}): ")
-        try:
-            value = int(rating)
-        except:  # pylint: disable=bare-except
-            continue
-
-        if value >= min_value and value <= max_value:
-            return value
-
-
 def ask_yesno(question: str) -> bool:
     while True:
         ans = input(f"{question}? (y/n): ").lower()
@@ -90,8 +89,152 @@ def get_scenarios() -> List[Scenario]:
     return round1
 
 
+def list_to_bitflags(seq: List[bool]) -> int:
+    return reduce(lambda a, b: a | b, (v << i for i, v in enumerate(seq)), 0)
+
+
+def prepare_tk_win(title: str, description: str = "") -> Tuple[tkinter.Tk, tkinter.Frame]:
+    window = tkinter.Tk()
+    window.title(title)
+    window.protocol("WM_DELETE_WINDOW", lambda: None)
+    # window.resizable(False, False)
+    frame = tkinter.Frame(window, borderwidth=10)
+    frame.pack()
+    tkinter.Label(frame, text=description or title).pack(anchor=tkinter.W, expand=True)
+    return window, frame
+
+
+def center(win: tkinter.Tk):
+    win.update_idletasks()
+    win.eval('tk::PlaceWindow . center')
+
+
+def ask_rating(title: str, options: Tuple[str, ...], description: str = "", horizontal: bool = True) -> int:
+    font = ("Arial", 20)
+
+    window, rootframe = prepare_tk_win(title, description)
+    frame = tkinter.Frame(rootframe)
+    frame.pack(expand=True)
+    rating = tkinter.IntVar()
+
+    for value, text in enumerate(options, 1):
+        if horizontal:
+            tkinter.Radiobutton(frame,
+                                text=text,
+                                font=font,
+                                value=value,
+                                width=10,
+                                height=5,
+                                variable=rating,
+                                indicatoron=False).pack(side=tkinter.LEFT, expand=True)
+        else:
+            tkinter.Radiobutton(frame,
+                                text=text,
+                                value=value,
+                                variable=rating).pack(anchor=tkinter.W, expand=True)
+
+    def on_submit():
+        if rating.get() > 0 and rating.get() <= 5:
+            window.destroy()
+
+    if horizontal:
+        tkinter.Button(rootframe, text="Submit", font=font, command=on_submit).pack(side=tkinter.BOTTOM, expand=True)
+    else:
+        tkinter.Button(rootframe, text="Submit", command=on_submit).pack(expand=True)
+
+    center(window)
+    window.mainloop()
+    return rating.get()
+
+
+def ask_choose(title: str, options: Tuple[str, ...], description: str = "") -> List[bool]:
+    window, frame = prepare_tk_win(title, description)
+    values = []
+
+    for option in options:
+        result = tkinter.IntVar(window, 0)
+        values.append(result)
+        tkinter.Checkbutton(frame, text=option, variable=result).pack(anchor=tkinter.W, expand=True)
+
+    tkinter.Button(frame, text="Submit", command=window.destroy).pack(expand=True)
+
+    center(window)
+    window.mainloop()
+    return [ bool(i.get()) for i in values ]
+
+
+def ask_mos(title: str) -> int:
+    return ask_rating(title, (
+        "Bad\n1",
+        "Poor\n2",
+        "Fair\n3",
+        "Good\n4",
+        "Excellent\n5",
+    ))
+
+
+def ask_survey() -> UserSurvey:
+    age = tkinter.simpledialog.askinteger("Survey", "Age")
+
+    gender = ask_rating("Survey", (
+        "Female",
+        "Male",
+        "Diverse",
+    ), description="Gender", horizontal=False)
+
+    time_spent = ask_rating("Survey", (
+        "0-4 hours",
+        "5-8 hours",
+        "9-12 hours",
+        "13-16 hours",
+        "17 or more hours",
+    ), description="Rate your average time spent on gaming per week", horizontal=False)
+
+    genres = ask_choose("Survey", (
+        "Action",
+        "Adventure",
+        "Battle royale",
+        "Bullet hell",
+        "Card game",
+        "Construction and management simulation",
+        "Dating sim",
+        "Tabletop",
+        "Dungeon crawl",
+        "Fighting",
+        "Horror",
+        "MMO",
+        "Metroidvania",
+        "MOBA",
+        "Multiplayer",
+        "Platform",
+        "Puzzle",
+        "Racing",
+        "Rhythm",
+        "Roguelike",
+        "RPG",
+        "Sandbox",
+        "Shooter",
+        "Soulslike",
+        "Sports",
+        "Stealth",
+        "Strategy",
+        "Survival",
+        "Visual novel",
+        "Walking simulator",
+        "Other",
+    ), description="Choose your most played genres")
+
+    devices = ask_choose("Survey", (
+        "PC",
+        "Console (Playstation, Xbox, ...)",
+        "Hand-held (Switch, Steam Deck, ...)",
+        "Mobile",
+    ), description="Which devices do regularily play on")
+
+    return UserSurvey(age, gender, time_spent, list_to_bitflags(genres), list_to_bitflags(devices))
+
+
 def open_timer_window(seconds: int) -> None:
-    os.environ["DISPLAY"] = DISPLAY
     font = ("Arial", 20)
 
     window = tkinter.Tk()
@@ -119,49 +262,6 @@ def open_timer_window(seconds: int) -> None:
 
     update_timer(seconds)
     window.mainloop()
-    del os.environ["DISPLAY"]
-
-
-def ask_rating_window() -> int:
-    os.environ["DISPLAY"] = DISPLAY
-    options = (
-        ("Bad\n1", 1),
-        ("Poor\n2", 2),
-        ("Fair\n3", 3),
-        ("Good\n4", 4),
-        ("Excellent\n5", 5),
-    )
-
-    font = ("Arial", 20)
-
-    window = tkinter.Tk()
-    window.title("Rate your experience")
-    window.protocol("WM_DELETE_WINDOW", lambda: None)
-    window.resizable(False, False)
-    window.eval('tk::PlaceWindow . center')
-    frame = tkinter.Frame(window)
-    frame.pack()
-    rating = tkinter.IntVar()
-
-    for text, value in options:
-        tkinter.Radiobutton(frame,
-                            text=text,
-                            font=font,
-                            value=value,
-                            width=10,
-                            height=5,
-                            variable=rating,
-                            indicatoron=False).pack(side=tkinter.LEFT, expand=True)
-
-    def on_submit():
-        if rating.get() > 0 and rating.get() <= 5:
-            window.destroy()
-
-    tkinter.Button(window, text="Submit", font=font, command=on_submit).pack(side=tkinter.BOTTOM, expand=True)
-
-    window.mainloop()
-    del os.environ["DISPLAY"]
-    return rating.get()
 
 
 def run_scenario(scenario: Scenario, duration_seconds: float) -> None:
@@ -170,9 +270,9 @@ def run_scenario(scenario: Scenario, duration_seconds: float) -> None:
     with run_subprocess([ "env", *scenario.to_env_list(), *FRONTEND_COMMAND, ]) as p:
         try:
             try:
-                time.sleep(duration_seconds - 3)
+                time.sleep(duration_seconds - 5)
                 os.spawnlp(os.P_NOWAIT, "paplay", "paplay", "alarm.ogg")
-                time.sleep(3)
+                time.sleep(5)
                 # open_timer_window(5)
 
             except KeyboardInterrupt:
@@ -184,7 +284,7 @@ def run_scenario(scenario: Scenario, duration_seconds: float) -> None:
 
 
 def run_subprocess(args: List[str]) -> subprocess.Popen:
-    return subprocess.Popen(args, preexec_fn=os.setsid, stdout=subprocess.DEVNULL)
+    return subprocess.Popen(args, preexec_fn=os.setsid, stdout=subprocess.DEVNULL)  # pylint: disable=subprocess-popen-preexec-fn
 
 
 def kill_subprocess(p: subprocess.Popen, sig=signal.SIGINT) -> None:
@@ -202,9 +302,6 @@ def main() -> int:
     random.seed(userid)
     print("User ID/Seed:", userid)
 
-    user_skill = ask_rating("Rate self-perceived skill level")
-    user_playtime = ask_rating("Rate how much time spent on gaming")
-
     scenarios = get_scenarios()
     print("Scenarios:", ", ".join(map(str, scenarios)))
 
@@ -214,9 +311,20 @@ def main() -> int:
     if append_mode:
         scenarios = scenarios[offset:]
 
+    os.environ["DISPLAY"] = DISPLAY
+
     with open(f"results_{userid}.csv", "a" if append_mode else "w") as f:
         if not append_mode:
-            f.write("userid,scenario,rating,skill,playtime\n")
+            # f.write("userid,scenario,rating,skill,playtime\n")
+            f.write("key,value\n")
+
+        survey = ask_survey()
+        f.write(f"userid,{userid}\n")
+        f.write(f"age,{survey.age}\n")
+        f.write(f"gender,{survey.gender}\n")
+        f.write(f"time,{survey.time_spent}\n")
+        f.write(f"genres,{survey.genres}\n")
+        f.write(f"devices,{survey.devices}\n")
 
         with run_subprocess([ "env", *BACKEND_COMMAND ]) as p_backend:
             try:
@@ -230,9 +338,9 @@ def main() -> int:
                     print(f"Running scenario {scenario.name} ({i})")
                     run_scenario(scenario, SCENARIO_DURATION_SECONDS)
 
-                    rating = ask_rating_window()
-                    f.write(f"{userid},{scenario},{rating},{user_skill},{user_playtime}\n")
-                    # input("Press enter to continue")
+                    rating = ask_mos("Rate your experience")
+                    f.write(f"scenario_{scenario},{rating}\n")
+                    # f.write(f"{userid},{scenario},{rating},{user_skill},{user_playtime}\n")
 
                 print("Done")
             finally:
