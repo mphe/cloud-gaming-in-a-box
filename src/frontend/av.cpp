@@ -118,7 +118,6 @@ namespace frontend {
 
         // Set codec to automatically determine how many threads suits best for the decoding job
         codecContext->thread_count = 0;
-        // codecContext->thread_type = FF_THREAD_FRAME;
         codecContext->thread_type = FF_THREAD_SLICE;
         codecContext->flags |= AV_CODEC_FLAG_LOW_DELAY;
         codecContext->flags |= AV_CODEC_FLAG2_FAST;

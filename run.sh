@@ -188,9 +188,11 @@ main() {
         # ffmpeg -help encoder=hevc_nvenc | less
         # -c:v h264_nvenc -preset llhq -tune hq \
         echo "Video stream at $VIDEO_OUT"
-        ffmpeg -threads 0 -r "$FPS" -f x11grab -video_size "${WIDTH}x${HEIGHT}" -framerate "$FPS" -i "$OUT_DISPLAY" -draw_mouse 1 \
+        ffmpeg -r "$FPS" -f x11grab -video_size "${WIDTH}x${HEIGHT}" -framerate "$FPS" -i "$OUT_DISPLAY" -draw_mouse 1 \
             -pix_fmt yuv420p \
             -c:v libx264 -preset ultrafast -tune zerolatency -b:v "${VIDEO_BITRATE}" \
+            -flags2 fast \
+            -refs 1 -me_method dia -me_range 16 -thread_type slice -slices 4 -threads 0 \
             -an \
             -f rtp "$VIDEO_OUT" \
             -sdp_file video.sdp \
