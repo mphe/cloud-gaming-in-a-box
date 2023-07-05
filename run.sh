@@ -189,7 +189,8 @@ main() {
         # ffmpeg -help encoder=hevc_nvenc | less
         # -c:v h264_nvenc -preset llhq -tune hq \
         echo "Video stream at $VIDEO_OUT"
-        ffmpeg -r "$FPS" -f x11grab -video_size "${WIDTH}x${HEIGHT}" -framerate "$FPS" -i "$OUT_DISPLAY" -draw_mouse 1 \
+        # ffmpeg -f x11grab -video_size "${WIDTH}x${HEIGHT}" -framerate "$FPS" -i "$OUT_DISPLAY" -draw_mouse 1 \
+        ffmpeg -re -r "$FPS" -f x11grab -video_size "${WIDTH}x${HEIGHT}" -framerate "$FPS" -i "$OUT_DISPLAY" -draw_mouse 1 \
             -pix_fmt yuv420p \
             -c:v libx264 -preset ultrafast -tune zerolatency -b:v "${VIDEO_BITRATE}" \
             -flags2 fast \
