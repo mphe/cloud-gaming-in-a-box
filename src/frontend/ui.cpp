@@ -5,6 +5,15 @@
 #include <syncstream>
 #include "VideoService.hpp"
 
+// Wait the given amount of microseconds until fetching and sending inputs.
+// If this value is <= 0, no buffering takes place and new inputs are sent immediately.
+// Setting this option > 0, e.g. 1000, seems to reduce increased mouse sensitivity. Instead of
+// sending a lot of 1px mouse movement inputs, buffering causes less packets to be sent that in turn
+// report higher delta values. This enables better application of mouse sensitivity scaling, at the
+// cost of increased latency.
+#define INPUT_BUFFER_US 0
+
+
 using std::cerr;
 
 namespace frontend {
@@ -165,8 +174,16 @@ namespace frontend {
 
         std::thread renderThread(_renderThread, gl, std::ref(*this));
 
+#if defined(INPUT_BUFFER_US) && (INPUT_BUFFER_US) > 0
+        while (_running) {
+            while (SDL_PollEvent(&event))
+                _processEvent(event);
+            usleep(INPUT_BUFFER_US);
+        }
+#else
         while (_running && SDL_WaitEvent(&event))
             _processEvent(event);
+#endif
 
         renderThread.join();
     }
