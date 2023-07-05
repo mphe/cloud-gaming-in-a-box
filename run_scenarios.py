@@ -326,6 +326,8 @@ def main() -> int:
         f.write(f"genres,{survey.genres}\n")
         f.write(f"devices,{survey.devices}\n")
 
+        subprocess.call("./copy_savegame.sh")
+
         with run_subprocess([ "env", *BACKEND_COMMAND ]) as p_backend:
             try:
                 if offset < 0:
