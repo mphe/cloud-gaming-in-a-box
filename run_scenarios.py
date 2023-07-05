@@ -13,6 +13,7 @@ import random
 from typing import List, Tuple
 import tkinter
 import tkinter.simpledialog
+import tkinter.messagebox
 
 
 @dataclass(frozen=True)
@@ -231,6 +232,8 @@ def ask_survey() -> UserSurvey:
         "Mobile",
     ), description="Which devices do regularily play on")
 
+    tkinter.messagebox.showinfo("Survey", "Thank you!\n\nPress OK to continue with the preparation phase.")
+
     return UserSurvey(age, gender, time_spent, list_to_bitflags(genres), list_to_bitflags(devices))
 
 
@@ -334,7 +337,8 @@ def main() -> int:
                     print("Running preparation with baseline scenario")
                     offset = 0
                     run_scenario(SCENARIO_BASELINE, PREPARE_DURATION_SECONDS)
-                    input("Press enter to start with testing...")
+                    tkinter.messagebox.showinfo("Survey", "Preparation time ended.\n\nPress OK to continue with the test scenarios.")
+                    # input("Press enter to start with testing...")
 
                 for i, scenario in enumerate(scenarios, offset):
                     print(f"Running scenario {scenario.name} ({i})")
@@ -344,6 +348,7 @@ def main() -> int:
                     f.write(f"scenario_{scenario},{rating}\n")
                     # f.write(f"{userid},{scenario},{rating},{user_skill},{user_playtime}\n")
 
+                tkinter.messagebox.showinfo("Survey", "Done.\n\nThank you for participating!")
                 print("Done")
             finally:
                 print("Terminating backend, waiting to exit...")
