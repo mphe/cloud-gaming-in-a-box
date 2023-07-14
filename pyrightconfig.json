@@ -1,0 +1,7 @@
+{
+  "include": [
+    "src"
+  ],
+  "reportGeneralTypeIssues": false,
+  "pythonPlatform": "All"
+}
