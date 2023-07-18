@@ -10,7 +10,7 @@ from typing import List
 def main() -> int:
     parser = argparse.ArgumentParser()
     parser.add_argument("csvs", nargs="+", help="List of CSV files to process")
-    parser.add_argument("--output", "-o", help="Output CSV file")
+    parser.add_argument("output", help="Output CSV file")
     args = parser.parse_args()
 
     dfs: List[pd.DataFrame] = []
