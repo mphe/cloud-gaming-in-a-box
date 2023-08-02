@@ -82,8 +82,7 @@ scenarios/delay3.sh cfg/vsync.sh ./run.sh "" proxy,syncinput,frontend
 The testbed only works on Linux, but all tools are written in a platform independant manner, so they
 can be ported to other platforms rather easily.
 
-The `syncinput` tool needs additional backends for platforms
-other than Linux/X11.
+The `syncinput` tool needs additional backends for platforms other than Linux/X11.
 
 
 ## Running Steam Proton Games
@@ -92,12 +91,12 @@ other than Linux/X11.
 2. Run the game
 3. Steam dumps corresponding run scripts to `~/proton_<user>/` (`gdb_attach`, `gdb_run`, `run`, `winedbg`, `winedbg_run`)
 4. Use the generated `run` script as execution target for `run.sh`
-    * Optionally, remove the line with `WINEDEBUG="-all"` from `run` script.
-6. Set `USE_VIRTUALGL=false` when executing `run.sh` to disable VirtualGL.
-    * VirtualGL does not work with Vulkan
-    * Proton uses Vulkan
-    * Proton/Wine seems to work similarly to VirtualGL in terms of allowing hardware acceleration in `Xvfb`
-7. `cfg/proton.sh` is a wrapper script that sets `USE_VIRTUALGL=false` and can be used for simplicity.
+    - Optionally, remove the line with `WINEDEBUG="-all"` from `run` script.
+5. Set `USE_VIRTUALGL=false` when executing `run.sh` to disable VirtualGL.
+    - VirtualGL does not work with Vulkan
+    - Proton uses Vulkan
+    - Proton/Wine seems to work similarly to VirtualGL in terms of allowing hardware acceleration in `Xvfb`
+6. `cfg/proton.sh` is a wrapper script that sets `USE_VIRTUALGL=false` and can be used for simplicity.
 
 
 ## Troubleshooting
