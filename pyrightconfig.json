@@ -3,5 +3,7 @@
     "src"
   ],
   "reportGeneralTypeIssues": false,
+  "reportOptionalSubscript": false,
+  "reportOptionalOperand": false,
   "pythonPlatform": "All"
 }

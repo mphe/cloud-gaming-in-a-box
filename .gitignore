@@ -9,3 +9,4 @@ video.sdp
 audio.sdp
 *.log
 logs
+*.pyc
