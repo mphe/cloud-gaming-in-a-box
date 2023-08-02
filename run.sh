@@ -203,7 +203,7 @@ main() {
         echo "Audio stream at $AUDIO_OUT"
         ffmpeg -f pulse -fragment_size 16 -i "$SINK_NAME.monitor" \
             -preset ultrafast -tune zerolatency \
-            -c:a libopus -b:a 48000 \
+            -c:a libopus -b:a 128K \
             -payload_type 111 -f rtp -max_delay 0 "$AUDIO_OUT" -sdp_file audio.sdp \
             > "$LOG_DIR/audio.log" 2>&1 &
 
