@@ -15,6 +15,7 @@ sudo -v
 trap cleanup EXIT INT HUP TERM
 
 cleanup() {
+    trap - EXIT INT HUP TERM
     # shellcheck disable=2046
     sudo kill -INT $(jobs -p)
     sleep 1
@@ -36,8 +37,8 @@ cd - || exit 1
 # ./udp.py -l localhost 5004 &
 # ./udp.py -l localhost 6004 &
 
-sudo tcpdump -i lo -U -w "$dir/${NAME}_to_proxy.pcap" udp and dst port 5004 &
-sudo tcpdump -i lo -U -w "$dir/${NAME}_from_proxy.pcap" udp and dst port 6004 &
+# sudo tcpdump -i lo -U -w "$dir/${NAME}_to_proxy.pcap" udp and dst port 5004 &
+# sudo tcpdump -i lo -U -w "$dir/${NAME}_from_proxy.pcap" udp and dst port 6004 &
 
 ./log_cpu.sh "$dir/cpu_$NAME.csv" &
 
