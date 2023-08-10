@@ -152,7 +152,7 @@ main() {
     trap cleanup EXIT INT HUP TERM QUIT
 
     if [ "$1" == "-h" ] || [ "$1" == "--help" ] || [ $# -lt 1 ]; then
-        echo "Usage: run_app.sh <app path> [command] [app args...]"
+        echo "Usage: run.sh <app path> [command] [app args...]"
         echo -e "    <app path>: Path to the application executable."
         echo -e "    [subsystems]: (Optional) Comma separated (no space) list of subsystems to start. Can be 'app', 'stream', 'syncinput', 'proxy', 'frontend', or empty ('')."
         echo -e "    [args...]: (Optional) Additional arguments passed to the application."
