@@ -14,7 +14,7 @@ cd ..
 # UDP proxy
 echo -e "\nBuilding UDP proxy"
 cd ./udp-proxy || exit 1
-go build
+make
 cd ..
 
 if ! [ -f ./build/Makefile ]; then

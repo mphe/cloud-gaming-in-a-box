@@ -71,7 +71,7 @@ has_command() {
 
 run_proxies() {
     # Proxies sometimes remained after exit. This should be fixed, but just in case...
-    if pgrep udp-proxy; then
+    if pgrep udp-wan-proxy; then
         echo "------------------------------------"
         echo "UDP PROXY STILL RUNNING DURING START"
         echo "------------------------------------"
@@ -81,14 +81,14 @@ run_proxies() {
     # UDP
     echo "UDP proxy"
     local server_args="-d $SERVER_DELAY_MS -j $SERVER_JITTER_MS --loss-start $SERVER_LOSS_START --loss-stop $SERVER_LOSS_STOP"
-    ./udp-proxy/udp-proxy -l "$FFMPEG_AUDIO_PORT" -r "$FRONTEND_AUDIO_PORT" $server_args > "$LOG_DIR/udp_audio_rtp.log" 2>&1 &
-    ./udp-proxy/udp-proxy -l "$FFMPEG_VIDEO_PORT" -r "$FRONTEND_VIDEO_PORT" $server_args > "$LOG_DIR/udp_video_rtp.log" 2>&1 &
-    ./udp-proxy/udp-proxy -l "$((FFMPEG_AUDIO_PORT + 1))" -r "$((FRONTEND_AUDIO_PORT + 1))" $server_args > "$LOG_DIR/udp_audio_rtcp.log" 2>&1 &
-    ./udp-proxy/udp-proxy -l "$((FFMPEG_VIDEO_PORT + 1))" -r "$((FRONTEND_VIDEO_PORT + 1))" $server_args > "$LOG_DIR/udp_video_rtcp.log" 2>&1 &
+    ./udp-proxy/udp-wan-proxy -l "$FFMPEG_AUDIO_PORT" -r "$FRONTEND_AUDIO_PORT" $server_args > "$LOG_DIR/udp_audio_rtp.log" 2>&1 &
+    ./udp-proxy/udp-wan-proxy -l "$FFMPEG_VIDEO_PORT" -r "$FRONTEND_VIDEO_PORT" $server_args > "$LOG_DIR/udp_video_rtp.log" 2>&1 &
+    ./udp-proxy/udp-wan-proxy -l "$((FFMPEG_AUDIO_PORT + 1))" -r "$((FRONTEND_AUDIO_PORT + 1))" $server_args > "$LOG_DIR/udp_audio_rtcp.log" 2>&1 &
+    ./udp-proxy/udp-wan-proxy -l "$((FFMPEG_VIDEO_PORT + 1))" -r "$((FRONTEND_VIDEO_PORT + 1))" $server_args > "$LOG_DIR/udp_video_rtcp.log" 2>&1 &
 
     # syncinput
     if [ "$SYNCINPUT_PROTOCOL" == "udp" ]; then
-        ./udp-proxy/udp-proxy -l "$FRONTEND_SYNCINPUT_PORT" -r "$SYNCINPUT_PORT" -d "$CLIENT_DELAY_MS" -j "$CLIENT_JITTER_MS" --loss-start "$CLIENT_LOSS_START" --loss-stop "$CLIENT_LOSS_STOP" \
+        ./udp-proxy/udp-wan-proxy -l "$FRONTEND_SYNCINPUT_PORT" -r "$SYNCINPUT_PORT" -d "$CLIENT_DELAY_MS" -j "$CLIENT_JITTER_MS" --loss-start "$CLIENT_LOSS_START" --loss-stop "$CLIENT_LOSS_STOP" \
             > "$LOG_DIR/udp_syncinput.log" 2>&1 &
     elif [ "$SYNCINPUT_PROTOCOL" == "tcp" ]; then
         echo "TCP proxy"
