@@ -14,6 +14,8 @@ from typing import List, Tuple
 import tkinter
 import tkinter.simpledialog
 import tkinter.messagebox
+from pathlib import Path
+
 
 
 @dataclass(frozen=True)
@@ -50,6 +52,10 @@ class Scenario:
         return " ".join(self.to_env_list())
 
 
+SELF_DIR = Path(sys.argv[0]).absolute().parent
+PROJECT_ROOT = SELF_DIR.parent
+ALARM_PATH = SELF_DIR / "alarm.ogg"
+
 DISPLAY = ":0"
 PREPARE_DURATION_SECONDS = 60 * 5
 SCENARIO_DURATION_SECONDS = 60 * 1
@@ -65,8 +71,8 @@ SCENARIOS = [
     Scenario("M2", rtt_ms=100, loss_start=0.001, loss_stop=0.999),
     Scenario("M3", rtt_ms=200, loss_start=0.001, loss_stop=0.999),
 ]
-BACKEND_COMMAND = [ f"DISPLAY={DISPLAY}", "cfg/proton.sh", "./run.sh", "apps/hatintime.sh", "app,stream", ]
-FRONTEND_COMMAND = [ f"DISPLAY={DISPLAY}", "cfg/vsync.sh", "./run.sh", "", "proxy,syncinput,frontend", ]
+BACKEND_COMMAND = [ f"DISPLAY={DISPLAY}", str(PROJECT_ROOT / "cfg/proton.sh"), str(PROJECT_ROOT / "run.sh"), str(PROJECT_ROOT / "apps/hatintime.sh"), "app,stream", ]
+FRONTEND_COMMAND = [ f"DISPLAY={DISPLAY}", str(PROJECT_ROOT / "cfg/vsync.sh"), str(PROJECT_ROOT / "run.sh"), "", "proxy,syncinput,frontend", ]
 
 
 def ask_yesno(question: str) -> bool:
@@ -274,7 +280,7 @@ def run_scenario(scenario: Scenario, duration_seconds: float) -> None:
         try:
             try:
                 time.sleep(duration_seconds - 5)
-                os.spawnlp(os.P_NOWAIT, "paplay", "paplay", "alarm.ogg")
+                os.spawnlp(os.P_NOWAIT, "paplay", "paplay", ALARM_PATH)
                 time.sleep(5)
                 # open_timer_window(5)
 
@@ -300,6 +306,9 @@ def main() -> int:
     parser.add_argument("-u", "--user", help="User ID that is also used as seed for randomization.")
     parser.add_argument("-o", "--offset", type=int, help="Scenario offset where to start")
     args = parser.parse_args()
+
+    # Execute in project root
+    os.chdir(PROJECT_ROOT)
 
     userid = str(args.user if args.user else time.time())
     random.seed(userid)
@@ -329,7 +338,7 @@ def main() -> int:
         f.write(f"genres,{survey.genres}\n")
         f.write(f"devices,{survey.devices}\n")
 
-        subprocess.call("./copy_savegame.sh")
+        subprocess.call(SELF_DIR / "hatintime/copy_savegame.sh")
 
         with run_subprocess([ "env", *BACKEND_COMMAND ]) as p_backend:
             try:
