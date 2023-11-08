@@ -338,7 +338,7 @@ def main() -> int:
         f.write(f"genres,{survey.genres}\n")
         f.write(f"devices,{survey.devices}\n")
 
-        subprocess.call(SELF_DIR / "hatintime/copy_savegame.sh")
+        # subprocess.call(SELF_DIR / "hatintime/copy_savegame.sh")
 
         with run_subprocess([ "env", *BACKEND_COMMAND ]) as p_backend:
             try:
